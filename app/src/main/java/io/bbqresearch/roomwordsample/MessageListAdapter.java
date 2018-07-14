@@ -16,13 +16,31 @@ public class MessageListAdapter extends RecyclerView.Adapter<MessageListAdapter.
     private final LayoutInflater mInflater;
     private List<Message> mMessages;
 
+    private int SENT_TYPE = 0;
+    private int RECV_TYPE = 1;
     MessageListAdapter(Context context) {
         mInflater = LayoutInflater.from(context);
     }
 
+    //Returns the view type of the item at position for the purposes of view recycling.
+    @Override
+    public int getItemViewType(int position) {
+        if (mMessages.get(position).isFromHere()) {
+            return SENT_TYPE;
+        } else {
+            return RECV_TYPE;
+        }
+    }
+
     @Override
     public MessageViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
-        View itemView = mInflater.inflate(R.layout.recyclerview_item, parent, false);
+        View itemView;
+
+        if (viewType == SENT_TYPE) {
+            itemView = mInflater.inflate(R.layout.sent_message, parent, false);
+        } else {
+            itemView = mInflater.inflate(R.layout.recieved_message, parent, false);
+        }
 
         return new MessageViewHolder(itemView);
     }
@@ -32,6 +50,7 @@ public class MessageListAdapter extends RecyclerView.Adapter<MessageListAdapter.
         if (mMessages != null) {
             Message current = mMessages.get(position);
             holder.messageItemView.setText(current.getMsg());
+            holder.messageAuthorView.setText(current.getAuthor());
 
         } else {
             // Covers the case of data not being ready yet.
@@ -44,8 +63,6 @@ public class MessageListAdapter extends RecyclerView.Adapter<MessageListAdapter.
         notifyDataSetChanged();
     }
 
-    // getItemCount() is called many times, and when it is first called,
-    // mWords has not been updated (means initially, it's null, and we can't return null).
     @Override
     public int getItemCount() {
         if (mMessages != null)
@@ -55,10 +72,11 @@ public class MessageListAdapter extends RecyclerView.Adapter<MessageListAdapter.
 
     class MessageViewHolder extends RecyclerView.ViewHolder {
         private final TextView messageItemView;
-
+        private final TextView messageAuthorView;
         private MessageViewHolder(View itemView) {
             super(itemView);
             messageItemView = itemView.findViewById(R.id.textView);
+            messageAuthorView = itemView.findViewById(R.id.textAuthor);
         }
     }
 }

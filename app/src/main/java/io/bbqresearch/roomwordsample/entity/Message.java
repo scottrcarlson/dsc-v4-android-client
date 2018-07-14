@@ -28,15 +28,21 @@ public class Message {
     private int recvTimestamp;
 
 
+    @NonNull
+    @ColumnInfo(name = "isFromHere")
+    private boolean isFromHere = false;
+
     public Message(@NonNull String msg,
                    @NonNull String author,
                    @NonNull int origTimestamp,
-                   @NonNull int recvTimestamp) {
+                   @NonNull int recvTimestamp,
+                   @NonNull boolean isFromHere) {
         this.id = 0;
         this.msg = msg;
         this.author = author;
         this.origTimestamp = origTimestamp;
         this.recvTimestamp = recvTimestamp;
+        this.isFromHere = isFromHere;
     }
 
     public int getId() {
@@ -64,5 +70,11 @@ public class Message {
     public int getRecvTimestamp() {
         return recvTimestamp;
     }
+
+    @NonNull
+    public boolean isFromHere() {
+        return isFromHere;
+    }
+
 
 }

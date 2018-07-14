@@ -25,6 +25,10 @@ public class MessageViewModel extends AndroidViewModel {
         return mAllMessages;
     }
 
+    public void deleteAll() {
+        mRepository.deleteAll();
+    }
+
     public void insert(Message message) {
         mRepository.insert(message);
     }

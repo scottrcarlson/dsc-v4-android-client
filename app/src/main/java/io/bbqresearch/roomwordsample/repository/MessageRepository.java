@@ -111,6 +111,10 @@ public class MessageRepository extends BroadcastReceiver {
         new insertAsyncTask(mMessageDao).execute(message);
     }
 
+    public void deleteAll() {
+        mMessageDao.deleteAll();
+    }
+
     private static class insertAsyncTask extends AsyncTask<Message, Void, Void> {
 
         private MessageDao mAsyncTaskDao;

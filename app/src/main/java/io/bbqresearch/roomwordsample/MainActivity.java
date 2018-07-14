@@ -4,6 +4,7 @@ import android.arch.lifecycle.Observer;
 import android.arch.lifecycle.ViewModelProviders;
 import android.content.Context;
 import android.content.Intent;
+import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.annotation.Nullable;
 import android.support.v7.app.AppCompatActivity;
@@ -15,7 +16,6 @@ import android.view.MenuItem;
 import android.view.View;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import java.util.List;
 
@@ -23,7 +23,7 @@ import io.bbqresearch.roomwordsample.entity.Message;
 import io.bbqresearch.roomwordsample.viewmodel.MessageViewModel;
 
 public class MainActivity extends AppCompatActivity {
-    public static final int NEW_MESSAGE_ACTIVITY_REQUEST_CODE = 1;
+    //public static final int NEW_MESSAGE_ACTIVITY_REQUEST_CODE = 1;
     private final static String TAG = MainActivity.class.getSimpleName();
     private MessageViewModel mMessageViewModel;
     private boolean isNewSentMessage = false;
@@ -33,7 +33,7 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
+        Toolbar toolbar = findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
 
         final RecyclerView recyclerView = findViewById(R.id.recyclerview);
@@ -59,6 +59,8 @@ public class MainActivity extends AppCompatActivity {
                 }
             }
         });
+
+
     }
 
     @Override
@@ -80,11 +82,21 @@ public class MainActivity extends AppCompatActivity {
             final Intent intent = new Intent(this, SettingsActivity.class);
             startActivity(intent);
             return true;
+        } else if (id == R.id.action_delete_messages) {
+            //mMessageViewModel.deleteAll();
+            AsyncTask.execute(new Runnable() {
+                @Override
+                public void run() {
+                    mMessageViewModel.deleteAll();
+                }
+            });
+            return true;
         }
         return super.onOptionsItemSelected(item);
     }
 
-    public void onActivityResult(int requestCode, int resultCode, Intent data) {
+    //utilize this for a device scanning fragment
+  /*  public void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
 
         if (requestCode == NEW_MESSAGE_ACTIVITY_REQUEST_CODE && resultCode == RESULT_OK) {
@@ -99,7 +111,7 @@ public class MainActivity extends AppCompatActivity {
                     R.string.empty_not_saved,
                     Toast.LENGTH_LONG).show();
         }
-    }
+    }*/
 
     public void onClickSend(View v) {
         isNewSentMessage = true;
@@ -107,12 +119,16 @@ public class MainActivity extends AppCompatActivity {
 
         if (!sendMessage.getText().toString().contentEquals("")) {
             Message message = new Message(sendMessage.getText().toString(),
-                    "Bob", 0, 100);
+                    "Bob", 0, 100, true);
             mMessageViewModel.insert(message);
             sendMessage.setText("");
             sendMessage.clearFocus();
             InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
             imm.hideSoftInputFromWindow(v.getWindowToken(), 0);
+        } else {
+            Message message = new Message("Hey blah blah blah, what happens when the messages is really long and drawn out.???",
+                    "Joe", 0, 100, false);
+            mMessageViewModel.insert(message);
         }
     }
 }
