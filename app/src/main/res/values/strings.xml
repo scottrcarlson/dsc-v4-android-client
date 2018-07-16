@@ -31,9 +31,9 @@
     <string name="menu_device">Device</string>
     <string name="menu_scan">Scan</string>
     <string name="menu_stop">Stop</string>
-    <!-- Strings related to Settings -->
 
-    <!-- Example General settings -->
+
+    <!-- ***** General settings -->
     <string name="pref_header_general">General</string>
 
     <string name="pref_title_social_recommendations">Enable social recommendations</string>
@@ -42,62 +42,78 @@
     </string>
 
     <string name="pref_title_airplane_mode">Airplane Mode</string>
-    <string name="pref_title_display_name">Display name</string>
-    <string name="pref_default_display_name">John Smith</string>
+    <string name="pref_title_display_name">Your Alias</string>
+    <string name="pref_default_display_name">Nunayobusiness</string>
 
-    <string name="pref_title_add_friends_to_messages">Add friends to messages</string>
-    <string-array name="pref_example_list_titles">
-        <item>Always</item>
-        <item>When possible</item>
-        <item>Never</item>
+    <string-array name="pref_bandwidth_titles">
+        <item>62.5 kHz</item>
+        <item>125 kHz</item>
+        <item>250 kHz</item>
+        <item>500 kHz</item>
     </string-array>
-    <string-array name="pref_example_list_values">
-        <item>1</item>
+    <string-array name="pref_bandwidth_values">
         <item>0</item>
-        <item>-1</item>
-    </string-array>
-
-    <!-- Example settings for Data & Sync -->
-    <string name="pref_header_data_sync">Data &amp; sync</string>
-
-    <string name="pref_title_sync_frequency">Sync frequency</string>
-    <string-array name="pref_sync_frequency_titles">
-        <item>15 minutes</item>
-        <item>30 minutes</item>
-        <item>1 hour</item>
-        <item>3 hours</item>
-        <item>6 hours</item>
-        <item>Never</item>
-    </string-array>
-    <string-array name="pref_sync_frequency_values">
-        <item>15</item>
-        <item>30</item>
-        <item>60</item>
-        <item>180</item>
-        <item>360</item>
-        <item>-1</item>
-    </string-array>
-
-    <string-array name="list_preference_entries">
-        <item>Entry 1</item>
-        <item>Entry 2</item>
-        <item>Entry 3</item>
-    </string-array>
-
-    <string-array name="list_preference_entry_values">
         <item>1</item>
         <item>2</item>
         <item>3</item>
     </string-array>
 
-    <string-array name="multi_select_list_preference_default_value" />
+    <string-array name="pref_codingrate_titles">
+        <item>4/5</item>
+        <item>4/6</item>
+        <item>4/7</item>
+        <item>4/8</item>
+    </string-array>
+    <string-array name="pref_codingrate_values">
+        <item>0</item>
+        <item>1</item>
+        <item>2</item>
+        <item>3</item>
+    </string-array>
 
-    <string name="pref_title_system_sync_settings">System sync settings</string>
+    <string-array name="pref_txpower_titles">
+        <item>11 dBm</item>
+        <item>12 dBm</item>
+        <item>13 dBm</item>
+        <item>14 dBm</item>
+        <item>15 dBm</item>
+        <item>16 dBm</item>
+        <item>17 dBm</item>
+        <item>18 dBm</item>
+        <item>19 dBm</item>
+        <item>20 dBm</item>
+        <item>21 dBm</item>
+        <item>22 dBm</item>
+        <item>23 dBm</item>
+        <item>24 dBm</item>
+        <item>25 dBm</item>
+        <item>26 dBm</item>
+        <item>27 dBm</item>
+    </string-array>
+    <string-array name="pref_txpower_values">
+        <item>11</item>
+        <item>12</item>
+        <item>13</item>
+        <item>14</item>
+        <item>15</item>
+        <item>16</item>
+        <item>17</item>
+        <item>18</item>
+        <item>19</item>
+        <item>20</item>
+        <item>21</item>
+        <item>22</item>
+        <item>23</item>
+        <item>24</item>
+        <item>25</item>
+        <item>26</item>
+        <item>27</item>
+    </string-array>
 
     <!-- Example settings for Notifications -->
     <string name="pref_header_notifications">Notifications</string>
 
-    <string name="pref_title_new_message_notifications">New message notifications</string>
+    <string name="pref_title_new_message_notifications">Enable Notifications</string>
 
     <string name="pref_title_ringtone">Ringtone</string>
     <string name="pref_ringtone_silent">Silent</string>

@@ -34,8 +34,8 @@ public class MessageRepository extends BroadcastReceiver {
             }
             // Automatically connects to the device upon successful start-up initialization.
             if (!dscService.isConnected()) {
-                dscService.setmBluetoothDeviceName("DSC");
-                dscService.setmBluetoothDeviceAddress("B8:27:EB:F2:1E:01");
+                dscService.setBluetoothDeviceName("DSC");
+                dscService.setBluetoothDeviceAddress("B8:27:EB:F2:1E:01");
                 dscService.connect();
             }
         }
@@ -60,11 +60,6 @@ public class MessageRepository extends BroadcastReceiver {
                 }, 3000);
 
             }
-            /*else if (DscService.ACTION_DATA_AVAILABLE.equals(action)) {
-                if (intent.getStringExtra(DscService.EXTRA_DATA) != null) {
-
-                }
-            }*/
         }
     };
     private MessageDao mMessageDao;

@@ -1,57 +1,119 @@
 <PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android">
 
-    <SwitchPreference
-        android:defaultValue="true"
-        android:key="example_switch"
-        android:summary="@string/pref_description_social_recommendations"
-        android:title="@string/pref_title_social_recommendations" />
-
     <!-- NOTE: EditTextPreference accepts EditText attributes. -->
     <!-- NOTE: EditTextPreference's summary should be set to its value by the activity code. -->
     <EditTextPreference
         android:capitalize="words"
         android:defaultValue="@string/pref_default_display_name"
         android:inputType="textCapWords"
-        android:key="example_text"
+        android:key="alias"
         android:maxLines="1"
         android:selectAllOnFocus="true"
         android:singleLine="true"
         android:title="@string/pref_title_display_name" />
 
-    <!-- NOTE: Hide buttons to simplify the UI. Users can touch outside the dialog to
-         dismiss it. -->
-    <!-- NOTE: ListPreference's summary should be set to its value by the activity code. -->
-    <ListPreference
-        android:defaultValue="-1"
-        android:entries="@array/pref_example_list_titles"
-        android:entryValues="@array/pref_example_list_values"
-        android:key="example_list"
-        android:negativeButtonText="@null"
-        android:positiveButtonText="@null"
-        android:title="@string/pref_title_add_friends_to_messages" />
 
-    <!-- A 'parent' preference, which enables/disables child preferences (below)
-        when checked/unchecked. -->
-    <SwitchPreference
-        android:defaultValue="true"
-        android:key="airplane_mode"
-        android:title="@string/pref_title_airplane_mode" />
+    <PreferenceCategory android:title="Network Parameters">
 
-    <!-- Allows the user to choose a ringtone in the 'notification' category. -->
-    <!-- NOTE: This preference will be enabled only when the checkbox above is checked. -->
-    <!-- NOTE: RingtonePreference's summary should be set to its value by the activity code. -->
-    <!--<RingtonePreference
-        android:defaultValue="content://settings/system/notification_sound"
-        android:dependency="notifications_new_message"
-        android:key="notifications_new_message_ringtone"
-        android:ringtoneType="notification"
-        android:title="@string/pref_title_ringtone" />
--->
-    <!-- NOTE: This preference will be enabled only when the checkbox above is checked. -->
-    <!--<SwitchPreference
-        android:defaultValue="true"
-        android:dependency="notifications_new_message"
-        android:key="notifications_new_message_vibrate"
-        android:title="@string/pref_title_vibrate" />
--->
+        <SwitchPreference
+            android:defaultValue="true"
+            android:key="airplane_mode"
+            android:summary="Disable LoRa Radio"
+            android:title="@string/pref_title_airplane_mode" />
+        <EditTextPreference
+            android:defaultValue="1"
+            android:inputType="number"
+            android:key="total_nodes"
+            android:selectAllOnFocus="true"
+            android:singleLine="true"
+            android:title=" Total Nodes (1-n)" />
+        <EditTextPreference
+            android:defaultValue="0"
+            android:inputType="number"
+            android:key="tdma_slot"
+            android:selectAllOnFocus="true"
+            android:singleLine="true"
+            android:title="TDMA Slot Number (0-n)" />
+        <EditTextPreference
+            android:defaultValue="4"
+            android:inputType="number"
+            android:key="tx_time"
+            android:selectAllOnFocus="true"
+            android:singleLine="true"
+            android:title="Transmit Time (s)" />
+        <EditTextPreference
+            android:defaultValue="1"
+            android:inputType="number"
+            android:key="tx_deadband"
+            android:selectAllOnFocus="true"
+            android:singleLine="true"
+            android:title="Transmit Deadband (s)" />
+    </PreferenceCategory>
+    <PreferenceCategory android:title="Radio Parameters">
+
+        <ListPreference
+            android:defaultValue="1"
+            android:entries="@array/pref_txpower_titles"
+            android:entryValues="@array/pref_txpower_values"
+            android:key="tx_power"
+            android:title="Transmit Power" />
+        <EditTextPreference
+            android:defaultValue="915.000"
+            android:inputType="numberDecimal"
+            android:key="freq"
+            android:selectAllOnFocus="true"
+            android:singleLine="true"
+            android:title="Frequency" />
+        <ListPreference
+            android:defaultValue="1"
+            android:entries="@array/pref_bandwidth_titles"
+            android:entryValues="@array/pref_bandwidth_values"
+            android:key="bandwidth"
+            android:title="Bandwidth" />
+        <EditTextPreference
+            android:defaultValue="10"
+            android:inputType="number"
+            android:key="spread_factor"
+            android:selectAllOnFocus="true"
+            android:singleLine="true"
+            android:title="Spreading Factor" />
+        <ListPreference
+            android:defaultValue="1"
+            android:entries="@array/pref_codingrate_titles"
+            android:entryValues="@array/pref_codingrate_values"
+            android:key="coding_rate"
+            android:title="Coding Rate" />
+        <EditTextPreference
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:defaultValue="1"
+            android:inputType="number"
+            android:key="sync_word"
+            android:selectAllOnFocus="true"
+            android:singleLine="true"
+            android:title="Syncword" />
+    </PreferenceCategory>
+    <PreferenceCategory android:title="Notifications">
+
+        <SwitchPreference
+            android:defaultValue="true"
+            android:dependency="notifications_new_message"
+            android:key="notifications_new_message_vibrate"
+            android:title="@string/pref_title_vibrate" />
+        <RingtonePreference
+            android:defaultValue="content://settings/system/notification_sound"
+            android:dependency="notifications_new_message"
+            android:key="notifications_new_message_ringtone"
+            android:ringtoneType="notification"
+            android:title="@string/pref_title_ringtone" />
+        <SwitchPreference
+            android:defaultValue="true"
+            android:key="notifications_new_message"
+            android:title="@string/pref_title_new_message_notifications" />
+    </PreferenceCategory>
+    <![CDATA[
+
+    -->
+    ]]><!-- NOTE: This preference will be enabled only when the checkbox above is checked. -->
+
 </PreferenceScreen>

@@ -25,6 +25,9 @@ import java.util.List;
  */
 public class DscGattAttributes {
     private final static String TAG = DscGattAttributes.class.getSimpleName();
+
+
+    public static String CLIENT_CHARACTERISTIC_CONFIG = "00002902-0000-1000-8000-00805f9b34fb";
     public static String GENERIC_ACCESS_UUID = "00001800-0000-1000-8000-00805f9b34fb";
     public static String GENERIC_APPEARANCE_UUID = "00002a01-0000-1000-8000-00805f9b34fb";
     public static String GENERIC_SERVICE_CHANGED_UUID = "00002a05-0000-1000-8000-00805f9b34fb";

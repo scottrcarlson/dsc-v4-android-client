@@ -46,7 +46,7 @@ import java.util.ArrayList;
 public class BootstrapActivity extends ListActivity {
     private static final int REQUEST_ENABLE_BT = 1;
     // Stops scanning after 10 seconds.
-    private static final long SCAN_PERIOD = 10000;
+    private static final long SCAN_PERIOD = 30000;
     private static final int PERMISSION_REQUEST_COARSE_LOCATION = 1;
     private LeDeviceListAdapter mLeDeviceListAdapter;
     private BluetoothAdapter mBluetoothAdapter;

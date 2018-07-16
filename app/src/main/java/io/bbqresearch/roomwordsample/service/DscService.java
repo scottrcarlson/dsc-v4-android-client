@@ -23,6 +23,7 @@ import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothGatt;
 import android.bluetooth.BluetoothGattCallback;
 import android.bluetooth.BluetoothGattCharacteristic;
+import android.bluetooth.BluetoothGattDescriptor;
 import android.bluetooth.BluetoothGattService;
 import android.bluetooth.BluetoothManager;
 import android.bluetooth.BluetoothProfile;
@@ -30,6 +31,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Binder;
+import android.os.Handler;
 import android.os.IBinder;
 import android.util.Log;
 
@@ -37,10 +39,9 @@ import org.json.JSONObject;
 
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
-
-import io.bbqresearch.roomwordsample.R;
 
 /**
  * Service for managing connection and data communication with a GATT server hosted on a
@@ -54,21 +55,14 @@ public class DscService extends Service {
             "io.bbqresearch.android.dirtsimplecomms.ACTION_DISCONNECTED";
     public final static String ACTION_READY =
             "io.bbqresearch.android.dirtsimplecomms.ACTION_READY";
-    public final static String ACTION_DATA_AVAILABLE =
-            "com.example.bluetooth.le.ACTION_DATA_AVAILABLE";
-    public final static String EXTRA_DATA =
-            "com.example.bluetooth.le.EXTRA_DATA";
-    public final static UUID UUID_DSC_NOTIFICATION =
-            UUID.fromString(DscGattAttributes.DSC_NOTITFYCHAR_UUID);
+
     private final static String TAG = DscService.class.getSimpleName();
     private static final int STATE_DISCONNECTED = 0;
     private static final int STATE_CONNECTING = 1;
     private static final int STATE_CONNECTED = 2;
-    private final String LIST_NAME = "NAME";
-    private final String LIST_UUID = "UUID";
+
     private final IBinder mBinder = new LocalBinder();
-    private ArrayList<ArrayList<BluetoothGattCharacteristic>> mGattCharacteristics =
-            new ArrayList<ArrayList<BluetoothGattCharacteristic>>();
+
     private BluetoothManager mBluetoothManager;
     private BluetoothAdapter mBluetoothAdapter;
     private BluetoothGatt mBluetoothGatt;
@@ -77,28 +71,25 @@ public class DscService extends Service {
     private boolean isServicesDiscovered = false;
     private boolean isConnected = false;
     private int mConnectionState = STATE_DISCONNECTED;
+
+    private boolean mSettingsChanged = false;
+    private boolean mSettingsNotifyActive = false;
+    private Handler handler = new Handler();
     private final BluetoothGattCallback mGattCallback = new BluetoothGattCallback() {
         @Override
         public void onConnectionStateChange(BluetoothGatt gatt, int status, int newState) {
             String intentAction;
             if (newState == BluetoothProfile.STATE_CONNECTED) {
                 mConnectionState = STATE_CONNECTED;
-
                 Log.i(TAG, "Connected to DSC GATT server.");
-
-                //intentAction = ACTION_GATT_CONNECTED;
                 broadcastUpdate(ACTION_CONNECTED);
 
                 mBluetoothGatt.discoverServices();
                 isConnected = true;
-
             } else if (newState == BluetoothProfile.STATE_DISCONNECTED) {
-
                 mConnectionState = STATE_DISCONNECTED;
-                Log.i(TAG, "Disconnected from DSC GATT server.");
+                Log.i(TAG, "Disconnected from DSC GATT server (Status: " + status + ")");
                 isConnected = false;
-
-                //intentAction = ACTION_GATT_DISCONNECTED;
                 broadcastUpdate(ACTION_DISCONNECTED);
             }
         }
@@ -106,11 +97,26 @@ public class DscService extends Service {
         @Override
         public void onServicesDiscovered(BluetoothGatt gatt, int status) {
             if (status == BluetoothGatt.GATT_SUCCESS) {
-
                 if (checkForReqServices(getSupportedGattServices())) {
                     isServicesDiscovered = true;
                     Log.d(TAG, "DSC Services Discovered.");
-                    broadcastUpdate(ACTION_READY);
+
+
+                    handler.postDelayed(new Runnable() {
+                        @Override
+                        public void run() {
+                            BluetoothGattService mCustomService = mBluetoothGatt.getService(UUID.fromString(DscGattAttributes.DSC_SERVICE_UUID));
+                            if (mCustomService == null) {
+                                Log.w(TAG, "DSC Parameters BLE Service not found");
+                                return;
+                            }
+
+                            BluetoothGattCharacteristic gattCharacteristic = mCustomService.getCharacteristic(UUID.fromString(DscGattAttributes.DSC_SETTINGS_UUID));
+                            setCharacteristicNotification(gattCharacteristic, true);
+                            broadcastUpdate(ACTION_READY);
+                        }
+                    }, 3000);
+
                 }
             } else {
                 isServicesDiscovered = false;
@@ -122,30 +128,61 @@ public class DscService extends Service {
         public void onCharacteristicRead(BluetoothGatt gatt,
                                          BluetoothGattCharacteristic characteristic,
                                          int status) {
+            Log.d(TAG, "onCharacteristicRead called.");
+            if (UUID.fromString(DscGattAttributes.DSC_SETTINGS_UUID).equals(characteristic.getUuid())) {
+                if (checkGattStatusAndLog(status, "Read")) {
+                    byte[] data = characteristic.getValue();
+                    Log.d(TAG, Arrays.toString(data));
+                    Log.d(TAG, "bytes: " + data.length);
+                    if (data != null && data.length > 0) {
+                        final StringBuilder stringBuilder = new StringBuilder(data.length);
 
-            if (checkGattStatusAndLog(status, "Read")) {
+                        for (byte byteChar : data)
+                            stringBuilder.append(String.format("%02X", byteChar));
+                        processInboundFromDsc(hexStringToByteArray(stringBuilder.toString()));
+                    }
+                }
+            }
+            //broadcastUpdate(ACTION_DATA_AVAILABLE, characteristic);
+        }
+        @Override
+        public void onCharacteristicChanged(BluetoothGatt gatt,
+                                            BluetoothGattCharacteristic characteristic) {
+            mSettingsNotifyActive = true;
+            Log.d(TAG, "onCharacteristicChanged called.");
+            if (UUID.fromString(DscGattAttributes.DSC_SETTINGS_UUID).equals(characteristic.getUuid())) {
                 byte[] data = characteristic.getValue();
+                Log.d(TAG, Arrays.toString(data));
+                Log.d(TAG, "bytes: " + data.length);
                 if (data != null && data.length > 0) {
                     final StringBuilder stringBuilder = new StringBuilder(data.length);
+
                     for (byte byteChar : data)
                         stringBuilder.append(String.format("%02X", byteChar));
                     processInboundFromDsc(hexStringToByteArray(stringBuilder.toString()));
                 }
             }
+            //broadcastUpdate(ACTION_DATA_AVAILABLE, characteristic);
         }
 
+        @Override
+        public void onCharacteristicWrite(BluetoothGatt gatt,
+                                          BluetoothGattCharacteristic characteristic,
+                                          int status) {
+            if (status != BluetoothGatt.GATT_SUCCESS) {
+                Log.e("onCharacteristicWrite", "Failed write, Is this a false positive???");
+            } else {
+
+                if (mSettingsChanged) {
+                    mSettingsChanged = false;
+                }
+            }
+            Log.d(TAG, "onCharacteristicWrite called (Status: " + status + ")");
+        }
 
         @Override
-        public void onCharacteristicChanged(BluetoothGatt gatt,
-                                            BluetoothGattCharacteristic characteristic) {
-            byte[] data = characteristic.getValue();
-            if (data != null && data.length > 0) {
-                final StringBuilder stringBuilder = new StringBuilder(data.length);
-                for (byte byteChar : data)
-                    stringBuilder.append(String.format("%02X", byteChar));
-                processInboundFromDsc(hexStringToByteArray(stringBuilder.toString()));
-            }
-            //broadcastUpdate(ACTION_DATA_AVAILABLE, characteristic);
+        public void onReadRemoteRssi(BluetoothGatt gatt, int rssi, int status) {
+            Log.d(TAG, "Remote RSSI: " + rssi);
         }
 
         public boolean checkGattStatusAndLog(int status, String operation) {
@@ -178,284 +215,6 @@ public class DscService extends Service {
             else return false;
         }
     };
-    private SharedPreferences.OnSharedPreferenceChangeListener listener;
-
-    public void setmBluetoothDeviceAddress(String mBluetoothDeviceAddress) {
-        this.mBluetoothDeviceAddress = mBluetoothDeviceAddress;
-    }
-
-    public void setmBluetoothDeviceName(String mBluetoothDeviceName) {
-        this.mBluetoothDeviceName = mBluetoothDeviceName;
-    }
-
-    @Override
-    public void onCreate() {
-        super.onCreate();
-        SharedPreferences prefs = this.getSharedPreferences("settings", 0);
-        listener = new SharedPreferences.OnSharedPreferenceChangeListener() {
-
-            public void onSharedPreferenceChanged(SharedPreferences prefs, String key) {
-                Log.d(TAG, "Pref Changed: " + key);
-                Log.d(TAG, "Pref Changed: " + prefs.getBoolean(key, true));
-
-                writeParams_ble("");
-                switch (key) {
-                    case "airplane_mode":
-                        break;
-                }
-
-            }
-        };
-        prefs.registerOnSharedPreferenceChangeListener(listener);
-    }
-
-    // Demonstrates how to iterate through the supported GATT Services/Characteristics.
-    // In this sample, we populate the data structure that is bound to the ExpandableListView
-    // on the UI.
-    private boolean checkForReqServices(List<BluetoothGattService> gattServices) {
-        if (gattServices == null) return false;
-        String uuid = null;
-        List<String> uuids = new ArrayList<String>();
-        String unknownServiceString = getResources().getString(R.string.unknown_service);
-        String unknownCharaString = getResources().getString(R.string.unknown_characteristic);
-
-        /*ArrayList<HashMap<String, String>> gattServiceData = new ArrayList<HashMap<String, String>>();
-        ArrayList<ArrayList<HashMap<String, String>>> gattCharacteristicData
-                = new ArrayList<ArrayList<HashMap<String, String>>>();
-        mGattCharacteristics = new ArrayList<ArrayList<BluetoothGattCharacteristic>>();*/
-
-
-        // Loops through available GATT Services.
-        for (BluetoothGattService gattService : gattServices) {
-
-            uuid = gattService.getUuid().toString();
-            uuids.add(uuid);
-            Log.d(TAG, DscGattAttributes.lookup(uuid, unknownServiceString) + ":" + uuid);
-            for (BluetoothGattCharacteristic gattCharacteristic : gattService.getCharacteristics()) {
-                uuid = gattCharacteristic.getUuid().toString();
-                uuids.add(uuid);
-                Log.d(TAG, DscGattAttributes.lookup(uuid, unknownCharaString) + ":" + uuid);
-            }
-        }
-        if (DscGattAttributes.checkAllReqAttributesAvail(uuids)) {
-            return true;
-        } else {
-            return false;
-        }
-            /*HashMap<String, String> currentServiceData = new HashMap<String, String>();
-
-            uuid = gattService.getUuid().toString();
-
-            Log.d(TAG, DscGattAttributes.lookup(uuid, unknownServiceString) + ":" + uuid);
-
-            currentServiceData.put(
-                    LIST_NAME, DscGattAttributes.lookup(uuid, unknownServiceString));
-            currentServiceData.put(LIST_UUID, uuid);
-            gattServiceData.add(currentServiceData);
-
-            ArrayList<HashMap<String, String>> gattCharacteristicGroupData =
-                    new ArrayList<HashMap<String, String>>();
-            List<BluetoothGattCharacteristic> gattCharacteristics =
-                    gattService.getCharacteristics();
-            ArrayList<BluetoothGattCharacteristic> charas =
-                    new ArrayList<BluetoothGattCharacteristic>();
-
-            // Loops through available Characteristics.
-            for (BluetoothGattCharacteristic gattCharacteristic : gattCharacteristics) {
-                charas.add(gattCharacteristic);
-                HashMap<String, String> currentCharaData = new HashMap<String, String>();
-                uuid = gattCharacteristic.getUuid().toString();
-
-                Log.d(TAG, DscGattAttributes.lookup(uuid, "Unknown") + ":" + uuid);
-               /* if (DscGattAttributes.DSC_NOTITFYCHAR_UUID.contentEquals(uuid))
-                {
-                    dscService.setCharacteristicNotification(
-                            gattCharacteristic, false);
-
-                }*/
-            /*
-                currentCharaData.put(
-                        LIST_NAME, DscGattAttributes.lookup(uuid, unknownCharaString));
-                currentCharaData.put(LIST_UUID, uuid);
-                gattCharacteristicGroupData.add(currentCharaData);
-            }
-            mGattCharacteristics.add(charas);
-            gattCharacteristicData.add(gattCharacteristicGroupData);
-
-            return false;*/
-        //}
-
-        /*SimpleExpandableListAdapter gattServiceAdapter = new SimpleExpandableListAdapter(
-                this,
-                gattServiceData,
-                android.R.layout.simple_expandable_list_item_2,
-                new String[] {LIST_NAME, LIST_UUID},
-                new int[] { android.R.id.text1, android.R.id.text2 },
-                gattCharacteristicData,
-                android.R.layout.simple_expandable_list_item_2,
-                new String[] {LIST_NAME, LIST_UUID},
-                new int[] { android.R.id.text1, android.R.id.text2 }
-        );
-        mGattServicesList.setAdapter(gattServiceAdapter);*/
-    }
-
-    private String getTopic(String jsonmsg) {
-        try {
-            JSONObject nodeRoot = new JSONObject(jsonmsg);
-
-            return nodeRoot.getString("topic");
-        } catch (Exception e) {
-            Log.e(TAG, "getTopic " + jsonmsg + " -- " + e.toString());
-        }
-        return "";
-    }
-
-    private void processInboundFromDsc(String jsonmsg) {
-        Log.d(TAG, "Got Json String: " + jsonmsg);
-
-        if (getTopic(jsonmsg).contentEquals("getparms")) {
-            compareSettings(jsonmsg);
-            Log.d(TAG, "process inbound msg");
-        }
-    }
-
-    public void logAllSettings() {
-        SharedPreferences prefs = this.getSharedPreferences("settings", 0);
-
-        /*Log.d(TAG, "Freq" + ": " + settings.getFrequency());
-        Log.d(TAG, "CR" + ": " + settings.getCodingRate());
-        Log.d(TAG, "BW" + ": " + settings.getBandwidth());
-        Log.d(TAG, "SPF" + ": " + settings.getSpread_factor());
-        Log.d(TAG, "SW" + ": " + settings.getSyncWord());
-        Log.d(TAG, "TDMASlot" + ": " + settings.getTdmaSlot());
-        Log.d(TAG, "TxPow" + ": " + settings.getTxPower());
-        Log.d(TAG, "TxTime" + ": " + settings.getTxTime());
-        Log.d(TAG, "DeadB" + ": " + settings.getDeadBand());*/
-        Log.d(TAG, "AirplaneMode" + ": " + prefs.getBoolean("airplane_mode", true));
-        //Log.d(TAG, "TotalNodes" + ": " + settings.getTotalNodes());
-
-    }
-
-    public void compareSettings(String jsonmsg) {
-        SharedPreferences prefs = this.getSharedPreferences("settings", 0);
-        try {
-            JSONObject nodeRoot = new JSONObject(jsonmsg);
-            JSONObject payload = nodeRoot.getJSONObject("payload");
-
-            int equal_cnt = 0;
-            int total_cnt = 11; // Parameters that need to match
-
-            if (payload.getBoolean("airplane_mode") == prefs.getBoolean("airplane_mode", true)) {
-                equal_cnt += 1;
-            }
-            if (payload.getString("freq").contentEquals(prefs.getString("freq", "915.000"))) {
-                equal_cnt += 1;
-            }
-            if (payload.getInt("bw") == prefs.getInt("bw", 0)) {
-                equal_cnt += 1;
-            }
-            if (payload.getInt("coding_rate") == prefs.getInt("coding_rate", 0)) {
-                equal_cnt += 1;
-            }
-            if (payload.getInt("deadband") == prefs.getInt("deadband", 0)) {
-                equal_cnt += 1;
-            }
-            if (payload.getInt("sp_factor") == prefs.getInt("sp_factor", 0)) {
-                equal_cnt += 1;
-            }
-            if (payload.getInt("sync_word") == prefs.getInt("sync_word", 0)) {
-                equal_cnt += 1;
-            }
-            if (payload.getInt("tdma_slot") == prefs.getInt("tdma_slot", 0)) {
-                equal_cnt += 1;
-            }
-            if (payload.getInt("tx_power") == prefs.getInt("tx_power", 0)) {
-                equal_cnt += 1;
-            }
-            if (payload.getInt("tx_time") == prefs.getInt("tx_time", 0)) {
-                equal_cnt += 1;
-            }
-            if (payload.getInt("total_nodes") == prefs.getInt("total_nodes", 0)) {
-                equal_cnt += 1;
-            }
-
-            if (equal_cnt == total_cnt) {
-                Log.d(TAG, "DSC Settings Equal");
-            } else {
-                Log.e(TAG, "DSC Settings not Equal");
-            }
-        } catch (Exception e) {
-            Log.e(TAG, "updateSettings error: " + jsonmsg + " -- " + e.toString());
-        }
-    }
-
-    public boolean isConnected() {
-        return isConnected;
-    }
-
-    public boolean isReady() {
-        if (mConnectionState == STATE_CONNECTED && isServicesDiscovered)
-            return true;
-        else {
-            return false;
-        }
-    }
-
-
-    private void broadcastUpdate(final String action) {
-        final Intent intent = new Intent(action);
-        sendBroadcast(intent);
-    }
-    // This is special handling for the Heart Rate Measurement profile.  Data parsing is
-    // carried out as per profile specifications:
-    // http://developer.bluetooth.org/gatt/characteristics/Pages/CharacteristicViewer.aspx?u=org.bluetooth.characteristic.heart_rate_measurement.xml
-        /*if (UUID_DSC_NOTIFICATION.equals(characteristic.getUuid())) {
-            final byte[] data = characteristic.getValue();
-            final StringBuilder stringBuilder = new StringBuilder(data.length);
-            for(byte byteChar : data)
-                stringBuilder.append(String.format("%02X ", byteChar));
-            Log.d("DSC GATT ?", stringBuilder.toString());
-            int flag = characteristic.getProperties();
-            int format = -1;
-
-            String msg = "DSC Notification!";
-
-            intent.putExtra(EXTRA_DATA, msg);
-        } else {
-            // For all other profiles, writes the data formatted in HEX.
-            final byte[] data = characteristic.getValue();
-            if (data != null && data.length > 0) {
-                final StringBuilder stringBuilder = new StringBuilder(data.length);
-                for(byte byteChar : data)
-                    stringBuilder.append(String.format("%02X", byteChar));
-                Log.d("DEBUG", "********************");
-                Log.d("DSC VALUE",stringBuilder.toString());
-                //String msg = stringBuilder.toString();
-
-                intent.putExtra(EXTRA_DATA, stringBuilder.toString());
-            }
-        }
-        sendBroadcast(intent);
-    }*/
-
-    /*private void broadcastUpdate(final String action,
-                                 final BluetoothGattCharacteristic characteristic) {
-        final Intent intent = new Intent(action);
-        Log.d("DSC GATT BROADCAST FROM", characteristic.getUuid().toString());
-        final byte[] data = characteristic.getValue();
-        if (data != null && data.length > 0) {
-            final StringBuilder stringBuilder = new StringBuilder(data.length);
-            for (byte byteChar : data)
-                stringBuilder.append(String.format("%02X", byteChar));
-            Log.d("DEBUG", "********************");
-            Log.d("DSC VALUE", stringBuilder.toString());
-            //String msg = stringBuilder.toString();
-
-            intent.putExtra(EXTRA_DATA, stringBuilder.toString());
-
-            sendBroadcast(intent);
-        }
-    }*/
 
     /**
      * Initializes a reference to the local Bluetooth adapter.
@@ -481,6 +240,230 @@ public class DscService extends Service {
 
         return true;
     }
+    private SharedPreferences.OnSharedPreferenceChangeListener listener;
+
+    public void setBluetoothDeviceAddress(String mBluetoothDeviceAddress) {
+        this.mBluetoothDeviceAddress = mBluetoothDeviceAddress;
+    }
+
+    public void setBluetoothDeviceName(String mBluetoothDeviceName) {
+        this.mBluetoothDeviceName = mBluetoothDeviceName;
+    }
+
+    @Override
+    public void onCreate() {
+        super.onCreate();
+        SharedPreferences prefs = this.getSharedPreferences("settings", 0);
+        listener = new SharedPreferences.OnSharedPreferenceChangeListener() {
+
+            public void onSharedPreferenceChanged(SharedPreferences prefs, String key) {
+                Log.d(TAG, "Pref Changed: " + key);
+
+
+                writeParams_ble("");
+
+                //readParams_ble();
+                switch (key) {
+                    case "airplane_mode":
+                        Log.d(TAG, "Pref Changed: " + prefs.getBoolean(key, true));
+                      /*  BluetoothGattService mCustomService = mBluetoothGatt.getService(UUID.fromString(DscGattAttributes.DSC_SERVICE_UUID));
+                        if (mCustomService == null) {
+                            Log.w(TAG, "DSC Parameters BLE Service not found");
+                            return;
+                        }
+                        BluetoothGattCharacteristic gattCharacteristic = mCustomService.getCharacteristic(UUID.fromString(DscGattAttributes.DSC_SETTINGS_UUID));
+                        if (prefs.getBoolean(key,true)) {
+                            setCharacteristicNotification(gattCharacteristic, true);
+                        }
+                        else {
+                            setCharacteristicNotification(gattCharacteristic, false);
+                        }*/
+                        break;
+                }
+            }
+        };
+        prefs.registerOnSharedPreferenceChangeListener(listener);
+    }
+
+    /**
+     * Enables or disables notification on a give characteristic.
+     *
+     * @param characteristic Characteristic to act on.
+     * @param enabled        If true, enable notification.  False otherwise.
+     */
+    public void setCharacteristicNotification(BluetoothGattCharacteristic characteristic,
+                                              boolean enabled) {
+        if (mBluetoothAdapter == null || mBluetoothGatt == null) {
+            Log.w(TAG, "BluetoothAdapter not initialized");
+            return;
+        }
+        Log.d(TAG, "Activating GATT Notifications");
+        for (BluetoothGattDescriptor descriptor : characteristic.getDescriptors()) {
+            Log.d(TAG, "Descriptors: " + descriptor.getUuid());
+        }
+        characteristic.getDescriptors();
+        BluetoothGattDescriptor descriptor = characteristic.getDescriptor(
+                UUID.fromString(DscGattAttributes.CLIENT_CHARACTERISTIC_CONFIG));
+
+        if (enabled) descriptor.setValue(BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE);
+        else descriptor.setValue(BluetoothGattDescriptor.DISABLE_NOTIFICATION_VALUE);
+        mBluetoothGatt.writeDescriptor(descriptor);
+        mBluetoothGatt.setCharacteristicNotification(characteristic, enabled);
+    }
+
+    private boolean checkForReqServices(List<BluetoothGattService> gattServices) {
+        if (gattServices == null) return false;
+        String uuid = null;
+        List<String> uuids = new ArrayList<String>();
+
+        // Loops through available GATT Services.
+        for (BluetoothGattService gattService : gattServices) {
+            uuid = gattService.getUuid().toString();
+            uuids.add(uuid);
+            for (BluetoothGattCharacteristic gattCharacteristic : gattService.getCharacteristics()) {
+                uuid = gattCharacteristic.getUuid().toString();
+                uuids.add(uuid);
+
+                int prop = gattCharacteristic.getProperties();
+                //Log.d(TAG, "Characteristic Property: " + gattCharacteristic.getProperties());
+
+                if (prop >= BluetoothGattCharacteristic.PROPERTY_EXTENDED_PROPS) {
+                    prop -= BluetoothGattCharacteristic.PROPERTY_EXTENDED_PROPS;
+                    Log.d(TAG, uuid + ": Extended Properties");
+                }
+                if (prop >= BluetoothGattCharacteristic.PROPERTY_SIGNED_WRITE) {
+                    prop -= BluetoothGattCharacteristic.PROPERTY_SIGNED_WRITE;
+                    Log.d(TAG, uuid + ": Signed Write");
+                }
+                if (prop >= BluetoothGattCharacteristic.PROPERTY_INDICATE) {
+                    prop -= BluetoothGattCharacteristic.PROPERTY_INDICATE;
+                    Log.d(TAG, uuid + ": Indicate");
+                }
+                if (prop >= BluetoothGattCharacteristic.PROPERTY_NOTIFY) {
+                    prop -= BluetoothGattCharacteristic.PROPERTY_NOTIFY;
+                    Log.d(TAG, uuid + ": Notify");
+                }
+                if (prop >= BluetoothGattCharacteristic.PROPERTY_WRITE) {
+                    prop -= BluetoothGattCharacteristic.PROPERTY_WRITE;
+                    Log.d(TAG, uuid + ": Write");
+                }
+                if (prop >= BluetoothGattCharacteristic.PROPERTY_WRITE_NO_RESPONSE) {
+                    prop -= BluetoothGattCharacteristic.PROPERTY_WRITE_NO_RESPONSE;
+                    Log.d(TAG, uuid + ": Write No Response");
+                }
+                if (prop >= BluetoothGattCharacteristic.PROPERTY_READ) {
+                    prop -= BluetoothGattCharacteristic.PROPERTY_READ;
+                    Log.d(TAG, uuid + ": Read");
+                }
+                if (prop >= BluetoothGattCharacteristic.PROPERTY_BROADCAST) {
+                    prop -= BluetoothGattCharacteristic.PROPERTY_BROADCAST;
+                    Log.d(TAG, uuid + ": Broadcast");
+                }
+
+
+            }
+        }
+
+        if (DscGattAttributes.checkAllReqAttributesAvail(uuids)) {
+            return true;
+        }
+
+        return false;
+    }
+
+    private String getTopic(String jsonmsg) {
+        try {
+            JSONObject nodeRoot = new JSONObject(jsonmsg);
+
+            return nodeRoot.getString("topic");
+        } catch (Exception e) {
+            //Log.e(TAG, "getTopic " + jsonmsg);
+        }
+        return "";
+    }
+
+    private void processInboundFromDsc(String jsonmsg) {
+        //Log.d(TAG, "Got Json String: " + jsonmsg);
+
+        if (getTopic(jsonmsg).contentEquals("getparms")) {
+            compareSettings(jsonmsg);
+            Log.d(TAG, "process inbound msg");
+        } else {
+            Log.d(TAG, "Unknown Incoming: " + jsonmsg.toString());
+        }
+    }
+
+    public void compareSettings(String jsonmsg) {
+        SharedPreferences prefs = this.getSharedPreferences("settings", 0);
+        try {
+            JSONObject nodeRoot = new JSONObject(jsonmsg);
+            JSONObject payload = nodeRoot.getJSONObject("payload");
+
+            int equal_cnt = 0;
+            int total_cnt = 11; // Parameters that need to match
+
+            if (payload.getBoolean("airplane_mode") == prefs.getBoolean("airplane_mode", true)) {
+                equal_cnt += 1;
+            } else Log.e(TAG, "airplane" + " not equal");
+            if (payload.getString("freq").contentEquals(prefs.getString("freq", "915.000"))) {
+                equal_cnt += 1;
+            } else Log.e(TAG, "freq" + " not equal");
+            if (payload.getInt("bw") == Integer.parseInt(prefs.getString("bandwidth", "0"))) {
+                equal_cnt += 1;
+            } else Log.e(TAG, "bw" + " not equal");
+            if (payload.getInt("coding_rate") == Integer.parseInt(prefs.getString("coding_rate", "0"))) {
+                equal_cnt += 1;
+            } else Log.e(TAG, "coding_rate" + " not equal");
+            if (payload.getInt("deadband") == Integer.parseInt(prefs.getString("tx_deadband", "0"))) {
+                equal_cnt += 1;
+            } else Log.e(TAG, "deadband" + " not equal");
+            if (payload.getInt("sp_factor") == Integer.parseInt(prefs.getString("spread_factor", "0"))) {
+                equal_cnt += 1;
+            } else Log.e(TAG, "sp_factor" + " not equal");
+            if (payload.getInt("sync_word") == Integer.parseInt(prefs.getString("sync_word", "0"))) {
+                equal_cnt += 1;
+            } else Log.e(TAG, "sync_word" + " not equal");
+            if (payload.getInt("tdma_slot") == Integer.parseInt(prefs.getString("tdma_slot", "0"))) {
+                equal_cnt += 1;
+            } else Log.e(TAG, "tdma_slot" + " not equal");
+            if (payload.getInt("tx_power") == Integer.parseInt(prefs.getString("tx_power", "0"))) {
+                equal_cnt += 1;
+            } else Log.e(TAG, "tx_power" + " not equal");
+            if (payload.getInt("tx_time") == Integer.parseInt(prefs.getString("tx_time", "0"))) {
+                equal_cnt += 1;
+            } else Log.e(TAG, "tx_time" + " not equal");
+            if (payload.getInt("total_nodes") == Integer.parseInt(prefs.getString("total_nodes", "0"))) {
+                equal_cnt += 1;
+            } else Log.e(TAG, "total_nodes" + " not equal");
+            if (equal_cnt == total_cnt) {
+                Log.d(TAG, "DSC Settings Equal");
+            } else {
+                Log.e(TAG, "DSC Settings not Equal: " + equal_cnt);
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "updateSettings error: " + jsonmsg);
+            Log.e(TAG, Log.getStackTraceString(e));
+        }
+    }
+
+    public boolean isConnected() {
+        return isConnected;
+    }
+
+    public boolean isReady() {
+        if (mConnectionState == STATE_CONNECTED && isServicesDiscovered)
+            return true;
+        else {
+            return false;
+        }
+    }
+
+    private void broadcastUpdate(final String action) {
+        final Intent intent = new Intent(action);
+        sendBroadcast(intent);
+    }
+
+
 
     /**
      * Connects to the GATT server hosted on the Bluetooth LE device.
@@ -569,39 +552,31 @@ public class DscService extends Service {
         }
         mBluetoothGatt.readCharacteristic(characteristic);
     }
-
+/*
     /**
      * Enables or disables notification on a give characteristic.
      *
      * @param characteristic Characteristic to act on.
      * @param enabled        If true, enable notification.  False otherwise.
      */
-    public void setCharacteristicNotification(BluetoothGattCharacteristic characteristic,
+ /*   public void setSettingsNotification(BluetoothGattCharacteristic characteristic,
                                               boolean enabled) {
         if (mBluetoothAdapter == null || mBluetoothGatt == null) {
             Log.w(TAG, "BluetoothAdapter not initialized");
             return;
         }
-
-        Log.d("DSC GATT setChara", characteristic.getUuid().toString());
-        if (UUID_DSC_NOTIFICATION.equals(characteristic.getUuid())) {
-            Log.d("DSC GATT setChara", "Found DSC NOTIFICATION.");
-            /*BluetoothGattDescriptor descriptor = characteristic.getDescriptor(
-                    UUID.fromString(DscGattAttributes.CLIENT_CHARACTERISTIC_CONFIG));
-            descriptor.setValue(BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE);
-
-            mBluetoothGatt.writeDescriptor(descriptor);*/
-            mBluetoothGatt.setCharacteristicNotification(characteristic, enabled);
-        } else if (DscGattAttributes.DSC_SETTINGS_UUID.equals(characteristic.getUuid())) {
-
-        }
         try {
-            Log.d("DSC MSG", characteristic.getValue().toString());
+            //Log.d(TAG, "Is this settings uuid?: " + characteristic.getUuid().toString());
+            if (UUID.fromString(DscGattAttributes.DSC_SETTINGS_UUID).equals(characteristic.getUuid())) {
+                Log.d(TAG, "Enabling DSC Settings Push Notification");
+                mBluetoothGatt.setCharacteristicNotification(characteristic, enabled);
+            }
+            //Log.d(TAG, characteristic.getValue().toString());
         } catch (Exception e) {
-            Log.d("DSC MSG ERR", "Error reading value from chara." + e.getStackTrace());
+            Log.d(TAG, "Error reading value from chara." + e.getStackTrace());
         }
     }
-
+*/
     /**
      * Retrieves a list of supported GATT services on the connected device. This should be
      * invoked only after {@code BluetoothGatt#discoverServices()} completes successfully.
@@ -651,23 +626,25 @@ public class DscService extends Service {
 
             obj.put("topic", "setparms");
             obj.put("airplane_mode", prefs.getBoolean("airplane_mode", true));
-            obj.put("freq", "905.030");
-            obj.put("bw", "125");
-            obj.put("sp_factor", 11);
-            obj.put("coding_rate", 0);
-            obj.put("tx_power", 11);
-            obj.put("sync_word", 200);
-            obj.put("deadband", 2);
-            obj.put("total_nodes", 2);
-            obj.put("tdma_slot", 0);
-            obj.put("tx_time", 1);
+            obj.put("freq", prefs.getString("freq", "915.000"));
+            obj.put("bw", Integer.parseInt(prefs.getString("bandwidth", "3")));
+            obj.put("sp_factor", Integer.parseInt(prefs.getString("spread_factor", "11")));
+            obj.put("coding_rate", Integer.parseInt(prefs.getString("coding_rate", "2")));
+            obj.put("tx_power", Integer.parseInt(prefs.getString("tx_power", "27")));
+            obj.put("sync_word", Integer.parseInt(prefs.getString("sync_word", "255")));
+            obj.put("deadband", Integer.parseInt(prefs.getString("tx_deadband", "1")));
+            obj.put("total_nodes", Integer.parseInt(prefs.getString("total_nodes", "2")));
+            obj.put("tdma_slot", Integer.parseInt(prefs.getString("tdma_slot", "0")));
+            obj.put("tx_time", Integer.parseInt(prefs.getString("tx_time","4")));
             mWriteCharacteristic.setValue(obj.toString());
         } catch (Exception e) {
-
+            Log.e(TAG, Log.getStackTraceString(e));
         }
         if (mBluetoothGatt.writeCharacteristic(mWriteCharacteristic) == false) {
             Log.w(TAG, "Failed to write DSC Parameters BLE");
         }
+
+        //setCharacteristicNotification(mWriteCharacteristic, true);
 
     }
 
