@@ -43,10 +43,9 @@ public class MessageRepository extends BroadcastReceiver {
                 Log.e(TAG, "Unable to initialize Bluetooth");
             }
             // Automatically connects to the device upon successful start-up initialization.
-            if (!dscService.isConnected()) {
+            if (!dscService.ismConnected()) {
                 dscService.setBluetoothDeviceName("DSC");
-                dscService.setBluetoothDeviceAddress("B8:27:EB:F2:1E:01");
-                dscService.connect();
+                dscService.connect("B8:27:EB:F2:1E:01");
             }
         }
 
@@ -117,14 +116,13 @@ public class MessageRepository extends BroadcastReceiver {
 
         Intent gattServiceIntent = new Intent(application, DscService.class);
         application.getApplicationContext().bindService(gattServiceIntent, mServiceConnection, Context.BIND_AUTO_CREATE);
-
         application.registerReceiver(dscUpdateReceiver, makeGattUpdateIntentFilter());
-        if (dscService != null) {
-            if (!dscService.isConnected()) {
+        /*if (dscService != null) {
+            if (!dscService.ismConnected()) {
                 final boolean result = dscService.connect();
                 Log.d(TAG, "Connect request result=" + result);
             }
-        }
+        }*/
     }
 
     private static IntentFilter makeGattUpdateIntentFilter() {

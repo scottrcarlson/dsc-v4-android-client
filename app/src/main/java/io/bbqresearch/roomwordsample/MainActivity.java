@@ -4,16 +4,22 @@ import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.arch.lifecycle.Observer;
 import android.arch.lifecycle.ViewModelProviders;
+import android.content.BroadcastReceiver;
+import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
+import android.content.ServiceConnection;
 import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.IBinder;
 import android.support.annotation.Nullable;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.Toolbar;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
@@ -23,6 +29,7 @@ import android.widget.TextView;
 import java.util.List;
 
 import io.bbqresearch.roomwordsample.entity.Message;
+import io.bbqresearch.roomwordsample.service.DscService;
 import io.bbqresearch.roomwordsample.viewmodel.MessageViewModel;
 
 public class MainActivity extends AppCompatActivity {
@@ -31,15 +38,58 @@ public class MainActivity extends AppCompatActivity {
     private final static String TAG = MainActivity.class.getSimpleName();
     private MessageViewModel mMessageViewModel;
     private boolean isNewSentMessage = false;
-
+    private DscService dscService;
     public static final String NOTIFY_CHANNEL_DSC = "DSC_NOTIFY_CHANNEL";
+    private final ServiceConnection mServiceConnection = new ServiceConnection() {
+
+        @Override
+        public void onServiceConnected(ComponentName componentName, IBinder service) {
+            dscService = ((DscService.LocalBinder) service).getService();
+            if (!dscService.initialize()) {
+                Log.e(TAG, "Unable to initialize Bluetooth");
+            }
+            // Automatically connects to the device upon successful start-up initialization.
+            if (!dscService.ismConnected()) {
+                dscService.setBluetoothDeviceName("DSC");
+                dscService.connect("B8:27:EB:F2:1E:01");
+            }
+        }
+
+        @Override
+        public void onServiceDisconnected(ComponentName componentName) {
+            dscService = null;
+        }
+    };
+    private Toolbar toolbar;
+    private final BroadcastReceiver dscUpdateReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            final String action = intent.getAction();
+            if (DscService.ACTION_CONNECTED.equals(action)) {
+
+            } else if (DscService.ACTION_DISCONNECTED.equals(action)) {
+                toolbar.setBackgroundResource(R.color.colorPrimaryDisconnected);
+            } else if (DscService.ACTION_READY.equals(action)) {
+                toolbar.setBackgroundResource(R.color.colorPrimary);
+            }
+        }
+    };
+
+    private static IntentFilter makeGattUpdateIntentFilter() {
+        final IntentFilter intentFilter = new IntentFilter();
+        intentFilter.addAction(DscService.ACTION_READY);
+        intentFilter.addAction(DscService.ACTION_CONNECTED);
+        intentFilter.addAction(DscService.ACTION_DISCONNECTED);
+        return intentFilter;
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        Toolbar toolbar = findViewById(R.id.toolbar);
+        toolbar = findViewById(R.id.toolbar);
+        toolbar.setBackgroundResource(R.color.colorPrimaryDisconnected);
         setSupportActionBar(toolbar);
 
         final RecyclerView recyclerView = findViewById(R.id.recyclerview);
@@ -65,6 +115,10 @@ public class MainActivity extends AppCompatActivity {
                 }
             }
         });
+
+        Intent gattServiceIntent = new Intent(this, DscService.class);
+        this.getApplicationContext().bindService(gattServiceIntent, mServiceConnection, Context.BIND_AUTO_CREATE);
+        this.registerReceiver(dscUpdateReceiver, makeGattUpdateIntentFilter());
 
         createNotificationChannel();
     }
@@ -110,6 +164,24 @@ public class MainActivity extends AppCompatActivity {
                 @Override
                 public void run() {
                     mMessageViewModel.deleteAll();
+                }
+            });
+            return true;
+        } else if (id == R.id.action_connect) {
+            //mMessageViewModel.deleteAll();
+            AsyncTask.execute(new Runnable() {
+                @Override
+                public void run() {
+                    dscService.connect("B8:27:EB:F2:1E:01");
+                }
+            });
+            return true;
+        } else if (id == R.id.action_disconnect) {
+            //mMessageViewModel.deleteAll();
+            AsyncTask.execute(new Runnable() {
+                @Override
+                public void run() {
+                    dscService.disconnect();
                 }
             });
             return true;

@@ -59,6 +59,9 @@ public class DscService extends Service {
             "io.bbqresearch.android.dirtsimplecomms.NEW_MESSAGE";
     public final static String EXTRA_DATA =
             "io.bbqresearch.android.dirtsimplecomms.EXTRA_DATA";
+
+    /* defines (in milliseconds) how often RSSI should be updated */
+    private static final int RSSI_UPDATE_TIME_INTERVAL = 1500; // 1.5 seconds
     private final static String TAG = DscService.class.getSimpleName();
     private static final int STATE_DISCONNECTED = 0;
     private static final int STATE_CONNECTING = 1;
@@ -72,14 +75,15 @@ public class DscService extends Service {
     private String mBluetoothDeviceAddress;
     private String mBluetoothDeviceName;
     private boolean isServicesDiscovered = false;
-    private boolean isConnected = false;
+    private boolean mConnected = false;
     private int mConnectionState = STATE_DISCONNECTED;
 
     private boolean mSettingsChanged = false;
     private boolean mSettingsNotifyActive = false;
 
-    private Handler handler = new Handler();
-    private Handler handler2 = new Handler();
+
+    private Handler mTimerHandler = new Handler();
+    private boolean mTimerEnabled = false;
     private final BluetoothGattCallback mGattCallback = new BluetoothGattCallback() {
         @Override
         public void onConnectionStateChange(BluetoothGatt gatt, int status, int newState) {
@@ -90,15 +94,19 @@ public class DscService extends Service {
                 broadcastUpdate(ACTION_CONNECTED);
 
                 mBluetoothGatt.discoverServices();
-                isConnected = true;
+
+                mConnected = true;
+                //startMonitoringRssiValue();
             } else if (newState == BluetoothProfile.STATE_DISCONNECTED) {
                 mConnectionState = STATE_DISCONNECTED;
                 String statusDesc = "";
                 if (status == 19) statusDesc = "Remote Device Forced Disconnect";
                 else if (status == 21) statusDesc = "Remote Connection Terminated due to Power Off";
                 Log.i(TAG, "BLE:" + statusDesc + "(" + status + ")");
-                isConnected = false;
+                mConnected = false;
                 broadcastUpdate(ACTION_DISCONNECTED);
+                stopMonitoringRssiValue();
+
             }
         }
 
@@ -311,12 +319,45 @@ public class DscService extends Service {
         prefs.registerOnSharedPreferenceChangeListener(listener);
     }
 
-    /**
-     * Enables or disables notification on a give characteristic.
-     *
-     * @param String Characteristic UUID String to act on.
-     * @param enabled        If true, enable notification.  False otherwise.
-     */
+
+    /* request new RSSi value for the connection*/
+    public void readPeriodicalyRssiValue(final boolean repeat) {
+        mTimerEnabled = repeat;
+        // check if we should stop checking RSSI value
+        if (mConnected == false || mBluetoothGatt == null || mTimerEnabled == false) {
+            mTimerEnabled = false;
+            return;
+        }
+
+        mTimerHandler.postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                if (mBluetoothGatt == null ||
+                        mBluetoothAdapter == null ||
+                        mConnected == false) {
+                    mTimerEnabled = false;
+                    return;
+                }
+
+                // request RSSI value
+                mBluetoothGatt.readRemoteRssi();
+                // add call it once more in the future
+                readPeriodicalyRssiValue(mTimerEnabled);
+            }
+        }, RSSI_UPDATE_TIME_INTERVAL);
+    }
+
+    /* starts monitoring RSSI value */
+    public void startMonitoringRssiValue() {
+        readPeriodicalyRssiValue(true);
+    }
+
+    /* stops monitoring of RSSI value */
+    public void stopMonitoringRssiValue() {
+        readPeriodicalyRssiValue(false);
+    }
+
+
     public void setCharacteristicNotification(String characteristicUUID,
                                               boolean enabled) {
         if (mBluetoothAdapter == null || mBluetoothGatt == null) {
@@ -484,8 +525,8 @@ public class DscService extends Service {
         }
     }
 
-    public boolean isConnected() {
-        return isConnected;
+    public boolean ismConnected() {
+        return mConnected;
     }
 
     public boolean isReady() {
@@ -511,42 +552,35 @@ public class DscService extends Service {
      * {@code BluetoothGattCallback#onConnectionStateChange(android.bluetooth.BluetoothGatt, int, int)}
      * callback.
      */
-    public boolean connect() {
-
+    public boolean connect(final String deviceAddress) {
+        mBluetoothDeviceAddress = deviceAddress;
         //String address = settings.getDeviceAddr();
         if (mBluetoothAdapter == null || mBluetoothDeviceAddress == null) {
             Log.w(TAG, "BluetoothAdapter not initialized or unspecified address.");
             return false;
         }
+        if (mBluetoothGatt != null && mBluetoothGatt.getDevice().getAddress().equals(mBluetoothDeviceAddress)) {
+            // just reconnect
+            return mBluetoothGatt.connect();
+        } else {
 
-        // Previously connected device.  Try to reconnect.
-        if (mBluetoothDeviceAddress != null // && address.equals(mBluetoothDeviceAddress)
-                && mBluetoothGatt != null) {
-            Log.d(TAG, "Trying to use an existing mBluetoothGatt for connection.");
-            if (mBluetoothGatt.connect()) {
-                mConnectionState = STATE_CONNECTING;
-                Log.d("DSC GATT CONNECT", "Made it to connection.");
-                return true;
-            } else {
+            final BluetoothDevice device = mBluetoothAdapter.getRemoteDevice(mBluetoothDeviceAddress);
+            if (device == null) {
+                Log.w(TAG, "Device not found.  Unable to connect.");
                 return false;
             }
+            // We want to directly connect to the device, so we are setting the autoConnect
+            // parameter to false.
+
+            mBluetoothGatt = device.connectGatt(this, false, mGattCallback, BluetoothDevice.TRANSPORT_LE);
+
+            Log.d(TAG, "Trying to create a new connection.");
+            //mBluetoothDeviceAddress = address;
+            mConnectionState = STATE_CONNECTING;
+            return true;
         }
-
-        final BluetoothDevice device = mBluetoothAdapter.getRemoteDevice(mBluetoothDeviceAddress);
-        if (device == null) {
-            Log.w(TAG, "Device not found.  Unable to connect.");
-            return false;
-        }
-        // We want to directly connect to the device, so we are setting the autoConnect
-        // parameter to false.
-
-        mBluetoothGatt = device.connectGatt(this, false, mGattCallback, BluetoothDevice.TRANSPORT_LE);
-
-        Log.d(TAG, "Trying to create a new connection.");
-        //mBluetoothDeviceAddress = address;
-        mConnectionState = STATE_CONNECTING;
-        return true;
     }
+
 
     /**
      * Disconnects an existing connection or cancel a pending connection. The disconnection result
@@ -560,8 +594,6 @@ public class DscService extends Service {
             return;
         }
         mBluetoothGatt.disconnect();
-
-
     }
 
     /**
