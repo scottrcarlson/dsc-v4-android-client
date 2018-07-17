@@ -1,4 +1,4 @@
-package io.bbqresearch.roomwordsample;
+package io.bbqresearch.dsc;
 
 import android.content.res.Configuration;
 import android.os.Bundle;

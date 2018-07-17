@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package io.bbqresearch.roomwordsample;
+package io.bbqresearch.dsc;
 
 import android.Manifest;
 import android.app.Activity;
@@ -39,6 +39,8 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import java.util.ArrayList;
+
+import io.bbqresearch.roomwordsample.R;
 
 /**
  * Activity for scanning and displaying available Bluetooth LE devices.

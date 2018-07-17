@@ -1,4 +1,4 @@
-package io.bbqresearch.roomwordsample.dao;
+package io.bbqresearch.dsc.dao;
 
 import android.arch.lifecycle.LiveData;
 import android.arch.persistence.room.Dao;
@@ -7,7 +7,7 @@ import android.arch.persistence.room.Query;
 
 import java.util.List;
 
-import io.bbqresearch.roomwordsample.entity.Message;
+import io.bbqresearch.dsc.entity.Message;
 
 @Dao
 public interface MessageDao {

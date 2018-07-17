@@ -1,4 +1,4 @@
-package io.bbqresearch.roomwordsample.service;
+package io.bbqresearch.dsc.service;
 
 import org.json.JSONObject;
 

@@ -1,4 +1,4 @@
-package io.bbqresearch.roomwordsample;
+package io.bbqresearch.dsc;
 
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
@@ -28,9 +28,10 @@ import android.widget.TextView;
 
 import java.util.List;
 
-import io.bbqresearch.roomwordsample.entity.Message;
-import io.bbqresearch.roomwordsample.service.DscService;
-import io.bbqresearch.roomwordsample.viewmodel.MessageViewModel;
+import io.bbqresearch.dsc.entity.Message;
+import io.bbqresearch.dsc.service.DscService;
+import io.bbqresearch.dsc.viewmodel.MessageViewModel;
+import io.bbqresearch.roomwordsample.R;
 
 public class MainActivity extends AppCompatActivity {
     //public static final int NEW_MESSAGE_ACTIVITY_REQUEST_CODE = 1;

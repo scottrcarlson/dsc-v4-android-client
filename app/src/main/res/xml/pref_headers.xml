@@ -3,7 +3,7 @@
     <!-- These settings headers are only used on tablets. -->
 
     <header
-        android:fragment="io.bbqresearch.roomwordsample.SettingsActivity$GeneralPreferenceFragment"
+        android:fragment="io.bbqresearch.dsc.SettingsActivity$GeneralPreferenceFragment"
         android:icon="@drawable/ic_info_black_24dp"
         android:title="@string/pref_header_general" />
 

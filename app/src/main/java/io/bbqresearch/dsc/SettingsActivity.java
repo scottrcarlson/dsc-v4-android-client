@@ -1,4 +1,4 @@
-package io.bbqresearch.roomwordsample;
+package io.bbqresearch.dsc;
 
 import android.annotation.TargetApi;
 import android.content.Intent;
@@ -14,6 +14,8 @@ import android.preference.RingtonePreference;
 import android.support.v7.app.ActionBar;
 import android.text.TextUtils;
 import android.view.MenuItem;
+
+import io.bbqresearch.roomwordsample.R;
 
 public class SettingsActivity extends AppCompatPreferenceActivity {
 

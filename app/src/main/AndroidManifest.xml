@@ -19,7 +19,7 @@
         android:supportsRtl="true"
         android:theme="@style/AppTheme">
         <activity
-            android:name=".BootstrapActivity"
+            android:name="io.bbqresearch.dsc.BootstrapActivity"
             android:label="@string/app_name">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -28,20 +28,20 @@
             </intent-filter>
         </activity>
         <activity
-            android:name=".MainActivity"
+            android:name="io.bbqresearch.dsc.MainActivity"
             android:theme="@style/AppTheme.NoActionBar"></activity>
-        <activity android:name=".NewWordActivity" />
+        <activity android:name="io.bbqresearch.dsc.NewWordActivity" />
         <activity
-            android:name=".SettingsActivity"
+            android:name="io.bbqresearch.dsc.SettingsActivity"
             android:label="@string/title_activity_settings" />
 
         <service
-            android:name=".service.DscService"
+            android:name="io.bbqresearch.dsc.service.DscService"
             android:enabled="true"
             android:exported="false" />
 
         <activity
-            android:name=".ScanningActivity"
+            android:name="io.bbqresearch.dsc.ScanningActivity"
             android:label="@string/title_activity_scanning"
             android:theme="@style/AppTheme.NoActionBar"></activity>
     </application>

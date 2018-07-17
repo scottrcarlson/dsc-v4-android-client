@@ -1,4 +1,4 @@
-package io.bbqresearch.roomwordsample.room;
+package io.bbqresearch.dsc.room;
 
 import android.arch.persistence.db.SupportSQLiteDatabase;
 import android.arch.persistence.room.Database;
@@ -8,8 +8,8 @@ import android.content.Context;
 import android.os.AsyncTask;
 import android.support.annotation.NonNull;
 
-import io.bbqresearch.roomwordsample.dao.MessageDao;
-import io.bbqresearch.roomwordsample.entity.Message;
+import io.bbqresearch.dsc.dao.MessageDao;
+import io.bbqresearch.dsc.entity.Message;
 
 @Database(entities = {Message.class}, version = 3)
 public abstract class MessageRoomDatabase extends RoomDatabase {

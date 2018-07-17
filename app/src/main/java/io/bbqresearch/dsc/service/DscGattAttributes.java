@@ -1,4 +1,4 @@
-package io.bbqresearch.roomwordsample.service;
+package io.bbqresearch.dsc.service;
 
 /*
  * Copyright (C) 2013 The Android Open Source Project

@@ -1,4 +1,4 @@
-package io.bbqresearch.roomwordsample;
+package io.bbqresearch.dsc;
 
 import android.content.Context;
 import android.support.v7.widget.RecyclerView;
@@ -9,7 +9,8 @@ import android.widget.TextView;
 
 import java.util.List;
 
-import io.bbqresearch.roomwordsample.entity.Message;
+import io.bbqresearch.dsc.entity.Message;
+import io.bbqresearch.roomwordsample.R;
 
 public class MessageListAdapter extends RecyclerView.Adapter<MessageListAdapter.MessageViewHolder> {
 

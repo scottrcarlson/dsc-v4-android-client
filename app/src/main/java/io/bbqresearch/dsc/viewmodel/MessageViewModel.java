@@ -1,4 +1,4 @@
-package io.bbqresearch.roomwordsample.viewmodel;
+package io.bbqresearch.dsc.viewmodel;
 
 import android.app.Application;
 import android.arch.lifecycle.AndroidViewModel;
@@ -6,8 +6,8 @@ import android.arch.lifecycle.LiveData;
 
 import java.util.List;
 
-import io.bbqresearch.roomwordsample.entity.Message;
-import io.bbqresearch.roomwordsample.repository.MessageRepository;
+import io.bbqresearch.dsc.repository.MessageRepository;
+import io.bbqresearch.dsc.entity.Message;
 
 public class MessageViewModel extends AndroidViewModel {
 

@@ -1,4 +1,4 @@
-package io.bbqresearch.roomwordsample.repository;
+package io.bbqresearch.dsc.repository;
 
 import android.app.Application;
 import android.app.Notification;
@@ -21,12 +21,12 @@ import org.json.JSONObject;
 
 import java.util.List;
 
-import io.bbqresearch.roomwordsample.MainActivity;
+import io.bbqresearch.dsc.MainActivity;
 import io.bbqresearch.roomwordsample.R;
-import io.bbqresearch.roomwordsample.dao.MessageDao;
-import io.bbqresearch.roomwordsample.entity.Message;
-import io.bbqresearch.roomwordsample.room.MessageRoomDatabase;
-import io.bbqresearch.roomwordsample.service.DscService;
+import io.bbqresearch.dsc.dao.MessageDao;
+import io.bbqresearch.dsc.entity.Message;
+import io.bbqresearch.dsc.room.MessageRoomDatabase;
+import io.bbqresearch.dsc.service.DscService;
 
 public class MessageRepository extends BroadcastReceiver {
     private final static String TAG = MessageRepository.class.getSimpleName();
