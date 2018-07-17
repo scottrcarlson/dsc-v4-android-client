@@ -93,7 +93,10 @@ public class DscService extends Service {
                 isConnected = true;
             } else if (newState == BluetoothProfile.STATE_DISCONNECTED) {
                 mConnectionState = STATE_DISCONNECTED;
-                Log.i(TAG, "Disconnected from DSC GATT server (Status: " + status + ")");
+                String statusDesc = "";
+                if (status == 19) statusDesc = "Remote Device Forced Disconnect";
+                else if (status == 21) statusDesc = "Remote Connection Terminated due to Power Off";
+                Log.i(TAG, "BLE:" + statusDesc + "(" + status + ")");
                 isConnected = false;
                 broadcastUpdate(ACTION_DISCONNECTED);
             }
@@ -105,39 +108,38 @@ public class DscService extends Service {
                 if (checkForReqServices(getSupportedGattServices())) {
                     isServicesDiscovered = true;
                     Log.d(TAG, "DSC Services Discovered.");
-                    final BluetoothGattService mCustomService = mBluetoothGatt.getService(UUID.fromString(DscGattAttributes.DSC_SERVICE_UUID));
 
 
-                    handler.postDelayed(new Runnable() {
+                    setCharacteristicNotification(DscGattAttributes.DSC_SETTINGS_UUID, true);
+                    /*handler.postDelayed(new Runnable() {
                         @Override
                         public void run() {
-                            if (mCustomService == null) {
-                                Log.w(TAG, "DSC Parameters BLE Service not found");
-                                return;
-                            }
-                            BluetoothGattCharacteristic gattCharacteristic2 = mCustomService.getCharacteristic(UUID.fromString(DscGattAttributes.DSC_MSG_INBOUND));
-                            setCharacteristicNotification(gattCharacteristic2, true);
-                        }
-                    }, 3000);
 
-                    handler2.postDelayed(new Runnable() {
+                        }
+                    }, 3000);*/
+
+                   /* handler2.postDelayed(new Runnable() {
                         @Override
                         public void run() {
-                            if (mCustomService == null) {
-                                Log.w(TAG, "DSC Parameters BLE Service not found");
-                                return;
-                            }
-                            BluetoothGattCharacteristic gattCharacteristic = mCustomService.getCharacteristic(UUID.fromString(DscGattAttributes.DSC_SETTINGS_UUID));
-                            setCharacteristicNotification(gattCharacteristic, true);
 
-                            broadcastUpdate(ACTION_READY);
                         }
-                    }, 6000);
+                    }, 6000);*/
 
                 }
             } else {
                 isServicesDiscovered = false;
                 Log.w(TAG, "onServicesDiscovered received: " + status);
+            }
+        }
+
+        @Override
+        public void onDescriptorWrite(BluetoothGatt gatt, BluetoothGattDescriptor descriptor, int status) {
+            super.onDescriptorWrite(gatt, descriptor, status);
+            Log.d(TAG, "onDescriptorWrite Status: " + status);
+            if (descriptor.getCharacteristic().getUuid().equals(UUID.fromString(DscGattAttributes.DSC_SETTINGS_UUID))) {
+                setCharacteristicNotification(DscGattAttributes.DSC_MSG_INBOUND, true);
+            } else if (descriptor.getCharacteristic().getUuid().equals(UUID.fromString(DscGattAttributes.DSC_MSG_INBOUND))) {
+                broadcastUpdate(ACTION_READY);
             }
         }
 
@@ -194,7 +196,7 @@ public class DscService extends Service {
                                           BluetoothGattCharacteristic characteristic,
                                           int status) {
             if (status != BluetoothGatt.GATT_SUCCESS) {
-                Log.e("onCharacteristicWrite", "Failed write, Is this a false positive???");
+                Log.e("onCharacteristicWrite", "Failed write, Connection Failure.");
             } else {
 
                 if (mSettingsChanged) {
@@ -312,20 +314,27 @@ public class DscService extends Service {
     /**
      * Enables or disables notification on a give characteristic.
      *
-     * @param characteristic Characteristic to act on.
+     * @param String Characteristic UUID String to act on.
      * @param enabled        If true, enable notification.  False otherwise.
      */
-    public void setCharacteristicNotification(BluetoothGattCharacteristic characteristic,
+    public void setCharacteristicNotification(String characteristicUUID,
                                               boolean enabled) {
         if (mBluetoothAdapter == null || mBluetoothGatt == null) {
             Log.w(TAG, "BluetoothAdapter not initialized");
             return;
         }
+        BluetoothGattService mCustomService = mBluetoothGatt.getService(UUID.fromString(DscGattAttributes.DSC_SERVICE_UUID));
+        if (mCustomService == null) {
+            Log.w(TAG, "DSC Parameters BLE Service not found");
+            return;
+        }
+        BluetoothGattCharacteristic characteristic = mCustomService.getCharacteristic(UUID.fromString(characteristicUUID));
         Log.d(TAG, "Activating GATT Notifications");
         for (BluetoothGattDescriptor descriptor : characteristic.getDescriptors()) {
             Log.d(TAG, "Descriptors: " + descriptor.getUuid());
         }
         characteristic.getDescriptors();
+
         BluetoothGattDescriptor descriptor = characteristic.getDescriptor(
                 UUID.fromString(DscGattAttributes.CLIENT_CHARACTERISTIC_CONFIG));
 

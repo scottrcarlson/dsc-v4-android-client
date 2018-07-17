@@ -36,14 +36,14 @@ public class DscGattAttributes {
     public static String DSC_SETTINGS_UUID = "deadbeef-0011-1001-1100-00000fffddd1";
     public static String DSC_MSG_INBOUND = "deadbeef-0011-1001-1100-00000fffddda";
     public static String DSC_MSG_OUTBOUND = "deadbeef-0011-1001-1100-00000fffdddb";
-    public static String DSC_NOTITFYCHAR_UUID = "deadbeef-0011-1001-1100-00000fffddd3";
+
     private static HashMap<String, String> attributes = new HashMap();
 
     static {
         //
         attributes.put(DSC_SERVICE_UUID, "DSC Service");
         attributes.put(DSC_SETTINGS_UUID, "DSC Settings Attribute");
-        attributes.put(DSC_NOTITFYCHAR_UUID, "DSC Notification Attribute");
+
         attributes.put(DSC_MSG_INBOUND, "DSC Inbound Message Attribute");
         attributes.put(GENERIC_ACCESS_UUID, "GAP Generic Access");
         attributes.put(GENERIC_APPEARANCE_UUID, "GAP Generic Appearance");
@@ -54,7 +54,7 @@ public class DscGattAttributes {
     }
 
     public static boolean checkAllReqAttributesAvail(List<String> uuids) {
-        int req_count = 9;
+        int req_count = 8;
         int count = 0;
 
         for (String uuid : uuids) {
