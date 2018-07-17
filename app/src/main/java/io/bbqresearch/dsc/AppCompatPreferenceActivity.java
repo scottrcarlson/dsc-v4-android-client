@@ -17,7 +17,7 @@ import android.view.ViewGroup;
  * to be used with AppCompat.
  */
 public abstract class AppCompatPreferenceActivity extends PreferenceActivity {
-
+  
     private AppCompatDelegate mDelegate;
 
     @Override
