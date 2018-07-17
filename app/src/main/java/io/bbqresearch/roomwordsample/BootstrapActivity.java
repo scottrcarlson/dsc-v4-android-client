@@ -110,6 +110,7 @@ public class BootstrapActivity extends ListActivity {
             return;
         }
 
+
         final Intent intent = new Intent(this, MainActivity.class);
 
         // This will redirect to control screen for a device from the scan list

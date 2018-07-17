@@ -93,7 +93,7 @@
             android:singleLine="true"
             android:title="Syncword" />
     </PreferenceCategory>
-    <PreferenceCategory android:title="Notifications">
+    <!--<PreferenceCategory android:title="Notifications">
 
         <SwitchPreference
             android:defaultValue="true"
@@ -113,7 +113,7 @@
     </PreferenceCategory>
     <![CDATA[
 
-    -->
-    ]]><!-- NOTE: This preference will be enabled only when the checkbox above is checked. -->
+
+    ]]> --> <!-- NOTE: This preference will be enabled only when the checkbox above is checked. -->
 
 </PreferenceScreen>

@@ -19,6 +19,8 @@ public class MessageViewModel extends AndroidViewModel {
         super(application);
         mRepository = new MessageRepository(application);
         mAllMessages = mRepository.getAllMessages();
+
+
     }
 
     public LiveData<List<Message>> getAllMessages() {

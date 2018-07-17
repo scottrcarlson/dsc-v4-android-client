@@ -18,7 +18,7 @@ public interface MessageDao {
     @Query("delete from messages")
     void deleteAll();
 
-    @Query("select * from messages order by recv_timestamp asc")
+    @Query("select * from messages order by id asc")
     LiveData<List<Message>> getAllMessages();
 
 }

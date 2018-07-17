@@ -110,7 +110,7 @@
         <item>27</item>
     </string-array>
 
-    <!-- Example settings for Notifications -->
+    <!-- Notifications -->
     <string name="pref_header_notifications">Notifications</string>
 
     <string name="pref_title_new_message_notifications">Enable Notifications</string>
@@ -120,4 +120,8 @@
 
     <string name="pref_title_vibrate">Vibrate</string>
     <string name="title_activity_scanning">ScanningActivity</string>
+
+    <string name="channel_name">DSC New Message</string>
+    <string name="channel_description">New Messages Inbound from LoRa</string>
+
 </resources>

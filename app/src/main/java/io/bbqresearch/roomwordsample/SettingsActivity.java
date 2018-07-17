@@ -204,9 +204,9 @@ public class SettingsActivity extends AppCompatPreferenceActivity {
             bindPreferenceSummaryToValue(pref);
 
 
-            bindPreferenceSummaryToValue(findPreference("notifications_new_message"));
+            /*bindPreferenceSummaryToValue(findPreference("notifications_new_message"));
             bindPreferenceSummaryToValue(findPreference("notifications_new_message_ringtone"));
-            bindPreferenceSummaryToValue(findPreference("notifications_new_message_vibrate"));
+            bindPreferenceSummaryToValue(findPreference("notifications_new_message_vibrate"));*/
 
         }
 

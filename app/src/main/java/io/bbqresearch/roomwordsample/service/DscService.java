@@ -55,7 +55,10 @@ public class DscService extends Service {
             "io.bbqresearch.android.dirtsimplecomms.ACTION_DISCONNECTED";
     public final static String ACTION_READY =
             "io.bbqresearch.android.dirtsimplecomms.ACTION_READY";
-
+    public final static String ACTION_NEW_MESSAGE =
+            "io.bbqresearch.android.dirtsimplecomms.NEW_MESSAGE";
+    public final static String EXTRA_DATA =
+            "io.bbqresearch.android.dirtsimplecomms.EXTRA_DATA";
     private final static String TAG = DscService.class.getSimpleName();
     private static final int STATE_DISCONNECTED = 0;
     private static final int STATE_CONNECTING = 1;
@@ -74,7 +77,9 @@ public class DscService extends Service {
 
     private boolean mSettingsChanged = false;
     private boolean mSettingsNotifyActive = false;
+
     private Handler handler = new Handler();
+    private Handler handler2 = new Handler();
     private final BluetoothGattCallback mGattCallback = new BluetoothGattCallback() {
         @Override
         public void onConnectionStateChange(BluetoothGatt gatt, int status, int newState) {
@@ -100,22 +105,34 @@ public class DscService extends Service {
                 if (checkForReqServices(getSupportedGattServices())) {
                     isServicesDiscovered = true;
                     Log.d(TAG, "DSC Services Discovered.");
+                    final BluetoothGattService mCustomService = mBluetoothGatt.getService(UUID.fromString(DscGattAttributes.DSC_SERVICE_UUID));
 
 
                     handler.postDelayed(new Runnable() {
                         @Override
                         public void run() {
-                            BluetoothGattService mCustomService = mBluetoothGatt.getService(UUID.fromString(DscGattAttributes.DSC_SERVICE_UUID));
                             if (mCustomService == null) {
                                 Log.w(TAG, "DSC Parameters BLE Service not found");
                                 return;
                             }
-
-                            BluetoothGattCharacteristic gattCharacteristic = mCustomService.getCharacteristic(UUID.fromString(DscGattAttributes.DSC_SETTINGS_UUID));
-                            setCharacteristicNotification(gattCharacteristic, true);
-                            broadcastUpdate(ACTION_READY);
+                            BluetoothGattCharacteristic gattCharacteristic2 = mCustomService.getCharacteristic(UUID.fromString(DscGattAttributes.DSC_MSG_INBOUND));
+                            setCharacteristicNotification(gattCharacteristic2, true);
                         }
                     }, 3000);
+
+                    handler2.postDelayed(new Runnable() {
+                        @Override
+                        public void run() {
+                            if (mCustomService == null) {
+                                Log.w(TAG, "DSC Parameters BLE Service not found");
+                                return;
+                            }
+                            BluetoothGattCharacteristic gattCharacteristic = mCustomService.getCharacteristic(UUID.fromString(DscGattAttributes.DSC_SETTINGS_UUID));
+                            setCharacteristicNotification(gattCharacteristic, true);
+
+                            broadcastUpdate(ACTION_READY);
+                        }
+                    }, 6000);
 
                 }
             } else {
@@ -130,17 +147,13 @@ public class DscService extends Service {
                                          int status) {
             Log.d(TAG, "onCharacteristicRead called.");
             if (UUID.fromString(DscGattAttributes.DSC_SETTINGS_UUID).equals(characteristic.getUuid())) {
-                if (checkGattStatusAndLog(status, "Read")) {
-                    byte[] data = characteristic.getValue();
-                    Log.d(TAG, Arrays.toString(data));
-                    Log.d(TAG, "bytes: " + data.length);
-                    if (data != null && data.length > 0) {
-                        final StringBuilder stringBuilder = new StringBuilder(data.length);
+                byte[] data = characteristic.getValue();
+                if (data != null && data.length > 0) {
+                    final StringBuilder stringBuilder = new StringBuilder(data.length);
 
-                        for (byte byteChar : data)
-                            stringBuilder.append(String.format("%02X", byteChar));
-                        processInboundFromDsc(hexStringToByteArray(stringBuilder.toString()));
-                    }
+                    for (byte byteChar : data)
+                        stringBuilder.append(String.format("%02X", byteChar));
+                    processInboundFromDsc(hexStringToByteArray(stringBuilder.toString()));
                 }
             }
             //broadcastUpdate(ACTION_DATA_AVAILABLE, characteristic);
@@ -151,6 +164,17 @@ public class DscService extends Service {
             mSettingsNotifyActive = true;
             Log.d(TAG, "onCharacteristicChanged called.");
             if (UUID.fromString(DscGattAttributes.DSC_SETTINGS_UUID).equals(characteristic.getUuid())) {
+                byte[] data = characteristic.getValue();
+                Log.d(TAG, Arrays.toString(data));
+                Log.d(TAG, "bytes: " + data.length);
+                if (data != null && data.length > 0) {
+                    final StringBuilder stringBuilder = new StringBuilder(data.length);
+
+                    for (byte byteChar : data)
+                        stringBuilder.append(String.format("%02X", byteChar));
+                    processInboundFromDsc(hexStringToByteArray(stringBuilder.toString()));
+                }
+            } else if (UUID.fromString(DscGattAttributes.DSC_MSG_INBOUND).equals(characteristic.getUuid())) {
                 byte[] data = characteristic.getValue();
                 Log.d(TAG, Arrays.toString(data));
                 Log.d(TAG, "bytes: " + data.length);
@@ -388,6 +412,11 @@ public class DscService extends Service {
         if (getTopic(jsonmsg).contentEquals("getparms")) {
             compareSettings(jsonmsg);
             Log.d(TAG, "process inbound msg");
+        } else if (getTopic(jsonmsg).contentEquals("newmsg")) {
+            final Intent intent = new Intent(ACTION_NEW_MESSAGE);
+            intent.putExtra(EXTRA_DATA, jsonmsg);
+            sendBroadcast(intent);
+            Log.d(TAG, "newmsg: " + jsonmsg);
         } else {
             Log.d(TAG, "Unknown Incoming: " + jsonmsg.toString());
         }
