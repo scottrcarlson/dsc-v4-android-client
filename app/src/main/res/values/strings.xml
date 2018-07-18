@@ -4,7 +4,7 @@
     <string name="action_clear_msgs">Erase Messages</string>
     <string name="action_disconnect">Disconnect</string>
     <string name="action_connect">Connect</string>
-
+    <string name="action_scan">Find Devices</string>
 
     <string name="hint_word">Word...</string>
     <string name="button_save">Save</string>
@@ -45,7 +45,9 @@
 
     <string name="pref_title_airplane_mode">Airplane Mode</string>
     <string name="pref_title_display_name">Your Alias</string>
+    <string name="pref_title_ble_mac">DSC BLE MAC</string>
     <string name="pref_default_display_name">Nunayobusiness</string>
+    <string name="pref_default_ble_mac"></string>
 
     <string-array name="pref_bandwidth_titles">
         <item>62.5 kHz</item>

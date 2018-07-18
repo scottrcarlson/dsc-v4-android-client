@@ -39,6 +39,7 @@ public class DscGattAttributes {
 
     private static HashMap<String, String> attributes = new HashMap();
 
+    public static String temp_mac_addr = "B8:27:EB:00:EF:E4";
     static {
         //
         attributes.put(DSC_SERVICE_UUID, "DSC Service");
@@ -60,8 +61,7 @@ public class DscGattAttributes {
         for (String uuid : uuids) {
             if (attributes.containsKey(uuid)) count += 1;
         }
-        if (count == req_count) return true;
-        else return false;
+        return count == req_count;
     }
 
     public static String lookup(String uuid, String defaultName) {

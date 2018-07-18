@@ -87,7 +87,6 @@ public class DscService extends Service {
     private final BluetoothGattCallback mGattCallback = new BluetoothGattCallback() {
         @Override
         public void onConnectionStateChange(BluetoothGatt gatt, int status, int newState) {
-            String intentAction;
             if (newState == BluetoothProfile.STATE_CONNECTED) {
                 mConnectionState = STATE_CONNECTED;
                 Log.i(TAG, "Connected to DSC GATT server.");
@@ -100,8 +99,10 @@ public class DscService extends Service {
             } else if (newState == BluetoothProfile.STATE_DISCONNECTED) {
                 mConnectionState = STATE_DISCONNECTED;
                 String statusDesc = "";
-                if (status == 19) statusDesc = "Remote Device Forced Disconnect";
-                else if (status == 21) statusDesc = "Remote Connection Terminated due to Power Off";
+                if (status == 19) statusDesc = "Remote Host Forced Disconnect";
+                else if (status == 21) statusDesc = "Remote Host Terminated Connection (Power Off)";
+                else if (status == 22) statusDesc = "Local Host Terminated Connection (Power Off)";
+
                 Log.i(TAG, "BLE:" + statusDesc + "(" + status + ")");
                 mConnected = false;
                 broadcastUpdate(ACTION_DISCONNECTED);
@@ -245,8 +246,7 @@ public class DscService extends Service {
             } else {
                 Log.e(TAG, operation + ": General Failure did not catch specific status flag: " + status);
             }
-            if (status == 0) return true;
-            else return false;
+            return status == 0;
         }
     };
 
@@ -438,11 +438,8 @@ public class DscService extends Service {
             }
         }
 
-        if (DscGattAttributes.checkAllReqAttributesAvail(uuids)) {
-            return true;
-        }
+        return DscGattAttributes.checkAllReqAttributesAvail(uuids);
 
-        return false;
     }
 
     private String getTopic(String jsonmsg) {
@@ -530,11 +527,7 @@ public class DscService extends Service {
     }
 
     public boolean isReady() {
-        if (mConnectionState == STATE_CONNECTED && isServicesDiscovered)
-            return true;
-        else {
-            return false;
-        }
+        return mConnectionState == STATE_CONNECTED && isServicesDiscovered;
     }
 
     private void broadcastUpdate(final String action) {
@@ -559,10 +552,10 @@ public class DscService extends Service {
             Log.w(TAG, "BluetoothAdapter not initialized or unspecified address.");
             return false;
         }
-        if (mBluetoothGatt != null && mBluetoothGatt.getDevice().getAddress().equals(mBluetoothDeviceAddress)) {
+        /*if (mBluetoothGatt != null && mBluetoothGatt.getDevice().getAddress().equals(mBluetoothDeviceAddress)) {
             // just reconnect
             return mBluetoothGatt.connect();
-        } else {
+        } else {*/
 
             final BluetoothDevice device = mBluetoothAdapter.getRemoteDevice(mBluetoothDeviceAddress);
             if (device == null) {
@@ -578,7 +571,7 @@ public class DscService extends Service {
             //mBluetoothDeviceAddress = address;
             mConnectionState = STATE_CONNECTING;
             return true;
-        }
+        //}
     }
 
 

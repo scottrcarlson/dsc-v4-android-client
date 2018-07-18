@@ -1,5 +1,6 @@
 package io.bbqresearch.dsc;
 
+import android.Manifest;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.arch.lifecycle.Observer;
@@ -10,11 +11,16 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.ServiceConnection;
+import android.content.pm.PackageManager;
 import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.support.annotation.Nullable;
+import android.support.design.widget.CoordinatorLayout;
+import android.support.design.widget.Snackbar;
+import android.support.v4.app.ActivityCompat;
+import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
@@ -25,22 +31,27 @@ import android.view.MenuItem;
 import android.view.View;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import java.util.List;
 
 import io.bbqresearch.dsc.entity.Message;
+import io.bbqresearch.dsc.service.DscGattAttributes;
 import io.bbqresearch.dsc.service.DscService;
 import io.bbqresearch.dsc.viewmodel.MessageViewModel;
 import io.bbqresearch.roomwordsample.R;
 
 public class MainActivity extends AppCompatActivity {
-    //public static final int NEW_MESSAGE_ACTIVITY_REQUEST_CODE = 1;
-
     private final static String TAG = MainActivity.class.getSimpleName();
+    public static final String EXTRAS_DEVICE_NAME = "DEVICE_NAME";
+    public static final String EXTRAS_DEVICE_ADDR = "DEVICE_ADDR";
+    public static final String NOTIFY_CHANNEL_DSC = "DSC_NOTIFY_CHANNEL";
+    private static final int REQUEST_ENABLE_BT = 1;
+    private static final int PERMISSION_REQUEST_COARSE_LOCATION = 1;
+    private static final int RESULT_BT_SCAN = 10;
+    private DscService dscService;
     private MessageViewModel mMessageViewModel;
     private boolean isNewSentMessage = false;
-    private DscService dscService;
-    public static final String NOTIFY_CHANNEL_DSC = "DSC_NOTIFY_CHANNEL";
     private final ServiceConnection mServiceConnection = new ServiceConnection() {
 
         @Override
@@ -51,8 +62,10 @@ public class MainActivity extends AppCompatActivity {
             }
             // Automatically connects to the device upon successful start-up initialization.
             if (!dscService.ismConnected()) {
-                dscService.setBluetoothDeviceName("DSC");
-                dscService.connect("B8:27:EB:F2:1E:01");
+
+                //if device has been provisioned and save to preferences connect
+                //dscService.setBluetoothDeviceName("DSC");
+                //dscService.connect(DscGattAttributes.temp_mac_addr);
             }
         }
 
@@ -61,6 +74,7 @@ public class MainActivity extends AppCompatActivity {
             dscService = null;
         }
     };
+    private CoordinatorLayout coordinatorLayout;
     private Toolbar toolbar;
     private final BroadcastReceiver dscUpdateReceiver = new BroadcastReceiver() {
         @Override
@@ -87,6 +101,31 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
+        // Use this check to determine whether BLE is supported on the device.  Then you can
+        // selectively disable BLE-related features.
+        if (!getPackageManager().hasSystemFeature(PackageManager.FEATURE_BLUETOOTH_LE)) {
+            Toast.makeText(this, R.string.ble_not_supported, Toast.LENGTH_SHORT).show();
+            finish();
+        }
+        if (ContextCompat.checkSelfPermission(this,
+                Manifest.permission.ACCESS_COARSE_LOCATION)
+                != PackageManager.PERMISSION_GRANTED) {
+            if (ActivityCompat.shouldShowRequestPermissionRationale(this,
+                    Manifest.permission.ACCESS_COARSE_LOCATION)) {
+                // Show an explanation to the user *asynchronously* -- don't block
+                // this thread waiting for the user's response! After the user
+                // sees the explanation, try again to request the permission.
+            } else {
+                ActivityCompat.requestPermissions(this,
+                        new String[]{Manifest.permission.ACCESS_COARSE_LOCATION},
+                        PERMISSION_REQUEST_COARSE_LOCATION);
+            }
+        } else {
+            // Permission has already been granted
+        }
+
+
         setContentView(R.layout.activity_main);
 
         toolbar = findViewById(R.id.toolbar);
@@ -117,12 +156,34 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
+        coordinatorLayout = findViewById(R.id
+                .coordinatorLayout);
+
         Intent gattServiceIntent = new Intent(this, DscService.class);
         this.getApplicationContext().bindService(gattServiceIntent, mServiceConnection, Context.BIND_AUTO_CREATE);
         this.registerReceiver(dscUpdateReceiver, makeGattUpdateIntentFilter());
 
         createNotificationChannel();
     }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode,
+                                           String permissions[], int[] grantResults) {
+        switch (requestCode) {
+            case PERMISSION_REQUEST_COARSE_LOCATION: {
+                // If request is cancelled, the result arrays are empty.
+                if (grantResults.length > 0
+                        && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+
+                } else {
+                    // permission denied
+                    // disable functionality that depends on this permission.
+                }
+                return;
+            }
+        }
+    }
+
 
     private void createNotificationChannel() {
         // Create the NotificationChannel, but only on API 26+ because
@@ -149,18 +210,13 @@ public class MainActivity extends AppCompatActivity {
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
-        // Handle action bar item clicks here. The action bar will
-        // automatically handle clicks on the Home/Up button, so long
-        // as you specify a parent activity in AndroidManifest.xml.
         int id = item.getItemId();
 
-        //noinspection SimplifiableIfStatement
         if (id == R.id.action_settings) {
             final Intent intent = new Intent(this, SettingsActivity.class);
             startActivity(intent);
             return true;
         } else if (id == R.id.action_delete_messages) {
-            //mMessageViewModel.deleteAll();
             AsyncTask.execute(new Runnable() {
                 @Override
                 public void run() {
@@ -169,44 +225,64 @@ public class MainActivity extends AppCompatActivity {
             });
             return true;
         } else if (id == R.id.action_connect) {
-            //mMessageViewModel.deleteAll();
             AsyncTask.execute(new Runnable() {
                 @Override
                 public void run() {
-                    dscService.connect("B8:27:EB:F2:1E:01");
+                    //TODO check to see if configured, connect option shoudl be hidden from menu
+                    dscService.connect(DscGattAttributes.temp_mac_addr);
+                    Snackbar snackbar = Snackbar
+                            .make(coordinatorLayout, "Connecting to DSC peripheral", Snackbar.LENGTH_LONG);
+
+                    snackbar.show();
                 }
             });
             return true;
         } else if (id == R.id.action_disconnect) {
-            //mMessageViewModel.deleteAll();
             AsyncTask.execute(new Runnable() {
                 @Override
                 public void run() {
                     dscService.disconnect();
+                    Snackbar snackbar = Snackbar
+                            .make(coordinatorLayout, "Disconnecting from DSC peripheral", Snackbar.LENGTH_LONG);
+
+                    snackbar.show();
                 }
             });
+            return true;
+        } else if (id == R.id.action_scan) {
+            final Intent intent = new Intent(this, ScanningActivity.class);
+            startActivityForResult(intent, RESULT_BT_SCAN);
             return true;
         }
         return super.onOptionsItemSelected(item);
     }
 
-    //utilize this for a device scanning fragment
-  /*  public void onActivityResult(int requestCode, int resultCode, Intent data) {
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
 
-        if (requestCode == NEW_MESSAGE_ACTIVITY_REQUEST_CODE && resultCode == RESULT_OK) {
-            Message message = new Message(data.getStringExtra(NewWordActivity.EXTRA_REPLY),
-                    "Bob",
-                    0,
-                    100);
-            mMessageViewModel.insert(message);
-        } else {
-            Toast.makeText(
-                    getApplicationContext(),
-                    R.string.empty_not_saved,
-                    Toast.LENGTH_LONG).show();
+        if (requestCode == RESULT_BT_SCAN) {
+            if (resultCode == RESULT_OK) {
+                String deviceName = data.getStringExtra(EXTRAS_DEVICE_NAME);
+                String deviceAddr = data.getStringExtra(EXTRAS_DEVICE_ADDR);
+                Log.d(TAG, "Name: " + deviceName);
+                Log.d(TAG, "Addr: " + deviceAddr);
+                if (!dscService.initialize()) {
+                    Log.e(TAG, "Unable to initialize Bluetooth");
+                }
+                // Automatically connects to the device upon successful start-up initialization.
+                if (!dscService.ismConnected()) {
+                    dscService.setBluetoothDeviceName(deviceName);
+                    dscService.connect(deviceAddr);
+
+                    Snackbar snackbar = Snackbar
+                            .make(coordinatorLayout, "Connecting to DSC peripheral", Snackbar.LENGTH_LONG);
+
+                    snackbar.show();
+                }
+            }
         }
-    }*/
+    }
 
     public void onClickSend(View v) {
         isNewSentMessage = true;

@@ -12,6 +12,14 @@
         android:singleLine="true"
         android:title="@string/pref_title_display_name" />
 
+    <EditTextPreference
+        android:defaultValue="@string/pref_default_ble_mac"
+        android:inputType="textCapWords"
+        android:key="ble_mac"
+        android:maxLines="1"
+        android:selectAllOnFocus="true"
+        android:singleLine="true"
+        android:title="@string/pref_title_ble_mac" />
 
     <PreferenceCategory android:title="Network Parameters">
 

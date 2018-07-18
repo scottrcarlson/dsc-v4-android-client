@@ -22,11 +22,11 @@ import org.json.JSONObject;
 import java.util.List;
 
 import io.bbqresearch.dsc.MainActivity;
-import io.bbqresearch.roomwordsample.R;
 import io.bbqresearch.dsc.dao.MessageDao;
 import io.bbqresearch.dsc.entity.Message;
 import io.bbqresearch.dsc.room.MessageRoomDatabase;
 import io.bbqresearch.dsc.service.DscService;
+import io.bbqresearch.roomwordsample.R;
 
 public class MessageRepository extends BroadcastReceiver {
     private final static String TAG = MessageRepository.class.getSimpleName();
@@ -39,14 +39,6 @@ public class MessageRepository extends BroadcastReceiver {
         @Override
         public void onServiceConnected(ComponentName componentName, IBinder service) {
             dscService = ((DscService.LocalBinder) service).getService();
-            if (!dscService.initialize()) {
-                Log.e(TAG, "Unable to initialize Bluetooth");
-            }
-            // Automatically connects to the device upon successful start-up initialization.
-            if (!dscService.ismConnected()) {
-                dscService.setBluetoothDeviceName("DSC");
-                dscService.connect("B8:27:EB:F2:1E:01");
-            }
         }
 
         @Override

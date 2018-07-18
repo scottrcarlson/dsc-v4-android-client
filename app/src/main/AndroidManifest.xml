@@ -19,7 +19,8 @@
         android:supportsRtl="true"
         android:theme="@style/AppTheme">
         <activity
-            android:name="io.bbqresearch.dsc.BootstrapActivity"
+            android:name="io.bbqresearch.dsc.MainActivity"
+            android:theme="@style/AppTheme.NoActionBar"
             android:label="@string/app_name">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -28,7 +29,7 @@
             </intent-filter>
         </activity>
         <activity
-            android:name="io.bbqresearch.dsc.MainActivity"
+            android:name="io.bbqresearch.dsc.ScanningActivity"
             android:theme="@style/AppTheme.NoActionBar"></activity>
         <activity android:name="io.bbqresearch.dsc.NewWordActivity" />
         <activity
@@ -41,7 +42,7 @@
             android:exported="false" />
 
         <activity
-            android:name="io.bbqresearch.dsc.ScanningActivity"
+            android:name="io.bbqresearch.dsc.ScanningActivityCruft"
             android:label="@string/title_activity_scanning"
             android:theme="@style/AppTheme.NoActionBar"></activity>
     </application>
