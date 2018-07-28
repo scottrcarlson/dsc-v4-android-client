@@ -18,6 +18,16 @@
         android:title="@string/action_scan"
         app:showAsAction="never" />
     <item
+        android:id="@+id/action_usb_ble_pair"
+        android:orderInCategory="100"
+        android:title="@string/action_usb_ble_pair"
+        app:showAsAction="never" />
+    <item
+        android:id="@+id/action_sync_datetime"
+        android:orderInCategory="100"
+        android:title="@string/action_sync_datetime"
+        app:showAsAction="never" />
+    <item
         android:id="@+id/action_connect"
         android:orderInCategory="100"
         android:title="@string/action_connect"

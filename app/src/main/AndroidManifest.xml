@@ -2,14 +2,20 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="io.bbqresearch.roomwordsample">
 
+    <uses-sdk android:minSdkVersion="12" />
+
     <uses-feature
         android:name="android.hardware.bluetooth_le"
         android:required="true" />
+    <uses-feature android:name="android.hardware.usb.host" />
 
     <uses-permission android:name="android.permission.BLUETOOTH" />
     <uses-permission android:name="android.permission.BLUETOOTH_ADMIN" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.READ_PHONE_STATE" />
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
 
     <application
         android:allowBackup="true"
@@ -20,8 +26,8 @@
         android:theme="@style/AppTheme">
         <activity
             android:name="io.bbqresearch.dsc.MainActivity"
-            android:theme="@style/AppTheme.NoActionBar"
-            android:label="@string/app_name">
+            android:label="@string/app_name"
+            android:theme="@style/AppTheme.NoActionBar">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
@@ -30,7 +36,7 @@
         </activity>
         <activity
             android:name="io.bbqresearch.dsc.ScanningActivity"
-            android:theme="@style/AppTheme.NoActionBar"></activity>
+            android:theme="@style/AppTheme.NoActionBar" />
         <activity android:name="io.bbqresearch.dsc.NewWordActivity" />
         <activity
             android:name="io.bbqresearch.dsc.SettingsActivity"
@@ -44,7 +50,25 @@
         <activity
             android:name="io.bbqresearch.dsc.ScanningActivityCruft"
             android:label="@string/title_activity_scanning"
-            android:theme="@style/AppTheme.NoActionBar"></activity>
+            android:theme="@style/AppTheme.NoActionBar" />
+        <activity
+            android:name="io.bbqresearch.dsc.UsbBlePairingActivity"
+            android:label="@string/title_activity_usb_ble_pairing"
+            android:parentActivityName="io.bbqresearch.dsc.MainActivity"
+            android:theme="@style/AppTheme.NoActionBar">
+
+            <intent-filter>
+                <action android:name="android.hardware.usb.action.USB_DEVICE_ATTACHED" />
+            </intent-filter>
+
+            <meta-data
+                android:name="android.hardware.usb.action.USB_DEVICE_ATTACHED"
+                android:resource="@xml/device_filter" />
+
+            <meta-data
+                android:name="android.support.PARENT_ACTIVITY"
+                android:value="io.bbqresearch.dsc.MainActivity" />
+        </activity>
     </application>
 
 </manifest>

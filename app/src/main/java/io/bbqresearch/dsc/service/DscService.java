@@ -117,23 +117,7 @@ public class DscService extends Service {
                 if (checkForReqServices(getSupportedGattServices())) {
                     isServicesDiscovered = true;
                     Log.d(TAG, "DSC Services Discovered.");
-
-
                     setCharacteristicNotification(DscGattAttributes.DSC_SETTINGS_UUID, true);
-                    /*handler.postDelayed(new Runnable() {
-                        @Override
-                        public void run() {
-
-                        }
-                    }, 3000);*/
-
-                   /* handler2.postDelayed(new Runnable() {
-                        @Override
-                        public void run() {
-
-                        }
-                    }, 6000);*/
-
                 }
             } else {
                 isServicesDiscovered = false;
@@ -146,8 +130,10 @@ public class DscService extends Service {
             super.onDescriptorWrite(gatt, descriptor, status);
             Log.d(TAG, "onDescriptorWrite Status: " + status);
             if (descriptor.getCharacteristic().getUuid().equals(UUID.fromString(DscGattAttributes.DSC_SETTINGS_UUID))) {
-                setCharacteristicNotification(DscGattAttributes.DSC_MSG_INBOUND, true);
-            } else if (descriptor.getCharacteristic().getUuid().equals(UUID.fromString(DscGattAttributes.DSC_MSG_INBOUND))) {
+                setCharacteristicNotification(DscGattAttributes.DSC_MSG_INBOUND_UUID, true);
+            } else if (descriptor.getCharacteristic().getUuid().equals(UUID.fromString(DscGattAttributes.DSC_MSG_INBOUND_UUID))) {
+                setCharacteristicNotification(DscGattAttributes.DSC_DATETIME_UUID, true);
+            } else if (descriptor.getCharacteristic().getUuid().equals(UUID.fromString(DscGattAttributes.DSC_DATETIME_UUID))) {
                 broadcastUpdate(ACTION_READY);
             }
         }
@@ -185,7 +171,7 @@ public class DscService extends Service {
                         stringBuilder.append(String.format("%02X", byteChar));
                     processInboundFromDsc(hexStringToByteArray(stringBuilder.toString()));
                 }
-            } else if (UUID.fromString(DscGattAttributes.DSC_MSG_INBOUND).equals(characteristic.getUuid())) {
+            } else if (UUID.fromString(DscGattAttributes.DSC_MSG_INBOUND_UUID).equals(characteristic.getUuid())) {
                 byte[] data = characteristic.getValue();
                 Log.d(TAG, Arrays.toString(data));
                 Log.d(TAG, "bytes: " + data.length);
@@ -205,12 +191,16 @@ public class DscService extends Service {
                                           BluetoothGattCharacteristic characteristic,
                                           int status) {
             if (status != BluetoothGatt.GATT_SUCCESS) {
-                Log.e("onCharacteristicWrite", "Failed write, Connection Failure.");
-            } else {
+                //Log.e("onCharacteristicWrite", "Failed write, Connection Failure.");
+                checkGattStatusAndLog(status, "onCharacteristicWrite Callback");
+                Log.e(TAG, "Permissions: " + characteristic.getPermissions());
+            } else if (UUID.fromString(DscGattAttributes.DSC_SETTINGS_UUID).equals(characteristic.getUuid())) {
 
                 if (mSettingsChanged) {
                     mSettingsChanged = false;
                 }
+            } else if (UUID.fromString(DscGattAttributes.DSC_DATETIME_UUID).equals(characteristic.getUuid())) {
+                Log.d(TAG, "DateTime onWrite Callback!");
             }
             Log.d(TAG, "onCharacteristicWrite called (Status: " + status + ")");
         }
@@ -481,7 +471,7 @@ public class DscService extends Service {
             if (payload.getBoolean("airplane_mode") == prefs.getBoolean("airplane_mode", true)) {
                 equal_cnt += 1;
             } else Log.e(TAG, "airplane" + " not equal");
-            if (payload.getString("freq").contentEquals(prefs.getString("freq", "915.000"))) {
+            if (payload.getInt("freq") == Integer.parseInt(prefs.getString("freq", "915000000"))) {
                 equal_cnt += 1;
             } else Log.e(TAG, "freq" + " not equal");
             if (payload.getInt("bw") == Integer.parseInt(prefs.getString("bandwidth", "0"))) {
@@ -562,7 +552,9 @@ public class DscService extends Service {
                 Log.w(TAG, "Device not found.  Unable to connect.");
                 return false;
             }
-            // We want to directly connect to the device, so we are setting the autoConnect
+
+
+        // We want to directly connect to the device, so we are setting the autoConnect
             // parameter to false.
 
             mBluetoothGatt = device.connectGatt(this, false, mGattCallback, BluetoothDevice.TRANSPORT_LE);
@@ -652,6 +644,27 @@ public class DscService extends Service {
         return mBluetoothGatt.getServices();
     }
 
+    public void sync_datetime_ble(long epoch) {
+        //For now we ignore value argument. Write all settings.
+        if (mBluetoothAdapter == null || mBluetoothGatt == null) {
+            Log.w(TAG, "BluetoothAdapter not initialized");
+            return;
+        }
+        BluetoothGattService mCustomService = mBluetoothGatt.getService(UUID.fromString(DscGattAttributes.DSC_SERVICE_UUID));
+        if (mCustomService == null) {
+            Log.w(TAG, "DSC Parameters BLE Service not found");
+            return;
+        }
+        BluetoothGattCharacteristic mWriteCharacteristic = mCustomService.getCharacteristic(UUID.fromString(DscGattAttributes.DSC_DATETIME_UUID));
+        mWriteCharacteristic.setValue(String.valueOf(epoch));
+
+        if (mBluetoothGatt.writeCharacteristic(mWriteCharacteristic) == false) {
+            Log.w(TAG, "Failed to write DSC Parameters BLE");
+        } else {
+            Log.d(TAG, "Writing to DSC DateTime Characteristic.");
+        }
+    }
+
     public void readParams_ble() {
         if (mBluetoothAdapter == null || mBluetoothGatt == null) {
             Log.w(TAG, "BluetoothAdapter not initialized");
@@ -689,7 +702,7 @@ public class DscService extends Service {
 
             obj.put("topic", "setparms");
             obj.put("airplane_mode", prefs.getBoolean("airplane_mode", true));
-            obj.put("freq", prefs.getString("freq", "915.000"));
+            obj.put("freq", Integer.parseInt(prefs.getString("freq", "915000000")));
             obj.put("bw", Integer.parseInt(prefs.getString("bandwidth", "3")));
             obj.put("sp_factor", Integer.parseInt(prefs.getString("spread_factor", "11")));
             obj.put("coding_rate", Integer.parseInt(prefs.getString("coding_rate", "2")));
@@ -700,15 +713,14 @@ public class DscService extends Service {
             obj.put("tdma_slot", Integer.parseInt(prefs.getString("tdma_slot", "0")));
             obj.put("tx_time", Integer.parseInt(prefs.getString("tx_time","4")));
             mWriteCharacteristic.setValue(obj.toString());
+            Log.d(TAG, obj.toString());
         } catch (Exception e) {
             Log.e(TAG, Log.getStackTraceString(e));
         }
         if (mBluetoothGatt.writeCharacteristic(mWriteCharacteristic) == false) {
             Log.w(TAG, "Failed to write DSC Parameters BLE");
         }
-
         //setCharacteristicNotification(mWriteCharacteristic, true);
-
     }
 
     private String hexStringToByteArray(String hex) {

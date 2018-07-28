@@ -34,28 +34,26 @@ public class DscGattAttributes {
 
     public static String DSC_SERVICE_UUID = "deadbeef-0011-1001-1100-00000fffddd0";
     public static String DSC_SETTINGS_UUID = "deadbeef-0011-1001-1100-00000fffddd1";
-    public static String DSC_MSG_INBOUND = "deadbeef-0011-1001-1100-00000fffddda";
+    public static String DSC_MSG_INBOUND_UUID = "deadbeef-0011-1001-1100-00000fffddda";
     public static String DSC_MSG_OUTBOUND = "deadbeef-0011-1001-1100-00000fffdddb";
+    public static String DSC_DATETIME_UUID = "deadbeef-0011-1001-1100-00000fffdddc";
 
     private static HashMap<String, String> attributes = new HashMap();
 
-    public static String temp_mac_addr = "B8:27:EB:00:EF:E4";
     static {
-        //
         attributes.put(DSC_SERVICE_UUID, "DSC Service");
         attributes.put(DSC_SETTINGS_UUID, "DSC Settings Attribute");
-
-        attributes.put(DSC_MSG_INBOUND, "DSC Inbound Message Attribute");
+        attributes.put(DSC_MSG_INBOUND_UUID, "DSC Inbound Message Attribute");
+        attributes.put(DSC_DATETIME_UUID, "DSC DateTime Synchronize Attribute");
         attributes.put(GENERIC_ACCESS_UUID, "GAP Generic Access");
         attributes.put(GENERIC_APPEARANCE_UUID, "GAP Generic Appearance");
         attributes.put(GENERIC_SERVICE_CHANGED_UUID, "GAP Generic Service Changed");
         attributes.put(GENERIC_DEVICE_NAME_UUID, "GAP Device Name");
         attributes.put(GENERIC_ATTRIBUTE_UUID, "GAP Generic Attribute");
-
     }
 
     public static boolean checkAllReqAttributesAvail(List<String> uuids) {
-        int req_count = 8;
+        int req_count = 9;
         int count = 0;
 
         for (String uuid : uuids) {

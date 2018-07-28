@@ -153,7 +153,15 @@ public class SettingsActivity extends AppCompatPreferenceActivity {
             Preference pref;
 
             pref = findPreference("alias");
-            pref.setSummary(getPreferenceManager().getSharedPreferences().getString("alias", "Noneyobusiness"));
+            pref.setSummary(getPreferenceManager().getSharedPreferences().getString("alias", "AC"));
+            bindPreferenceSummaryToValue(pref);
+
+            pref = findPreference("btname");
+            pref.setSummary(getPreferenceManager().getSharedPreferences().getString("btname", ""));
+            bindPreferenceSummaryToValue(pref);
+
+            pref = findPreference("btaddr");
+            pref.setSummary(getPreferenceManager().getSharedPreferences().getString("btaddr", ""));
             bindPreferenceSummaryToValue(pref);
 
             String shared_val = getPreferenceManager().getSharedPreferences().getString("total_nodes", "2");

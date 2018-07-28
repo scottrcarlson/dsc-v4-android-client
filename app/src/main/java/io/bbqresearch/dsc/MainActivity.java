@@ -11,6 +11,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.ServiceConnection;
+import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.os.AsyncTask;
 import android.os.Build;
@@ -36,7 +37,6 @@ import android.widget.Toast;
 import java.util.List;
 
 import io.bbqresearch.dsc.entity.Message;
-import io.bbqresearch.dsc.service.DscGattAttributes;
 import io.bbqresearch.dsc.service.DscService;
 import io.bbqresearch.dsc.viewmodel.MessageViewModel;
 import io.bbqresearch.roomwordsample.R;
@@ -52,6 +52,7 @@ public class MainActivity extends AppCompatActivity {
     private DscService dscService;
     private MessageViewModel mMessageViewModel;
     private boolean isNewSentMessage = false;
+    private SharedPreferences prefs;
     private final ServiceConnection mServiceConnection = new ServiceConnection() {
 
         @Override
@@ -164,8 +165,34 @@ public class MainActivity extends AppCompatActivity {
         this.registerReceiver(dscUpdateReceiver, makeGattUpdateIntentFilter());
 
         createNotificationChannel();
+
+        prefs = this.getSharedPreferences("settings", 0);
     }
 
+    @Override
+    protected void onResume() {
+        super.onResume();
+        registerReceiver(dscUpdateReceiver, makeGattUpdateIntentFilter());
+        if (dscService != null) {
+            if (!dscService.ismConnected()) {
+                final boolean result = dscService.connect(prefs.getString("btaddr", ""));
+                Log.d(TAG, "Connect request result=" + result);
+            }
+        }
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        unregisterReceiver(dscUpdateReceiver);
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        //unbindService(mServiceConnection);
+        dscService = null;
+    }
     @Override
     public void onRequestPermissionsResult(int requestCode,
                                            String permissions[], int[] grantResults) {
@@ -229,7 +256,8 @@ public class MainActivity extends AppCompatActivity {
                 @Override
                 public void run() {
                     //TODO check to see if configured, connect option shoudl be hidden from menu
-                    dscService.connect(DscGattAttributes.temp_mac_addr);
+
+                    dscService.connect(prefs.getString("btaddr", ""));
                     Snackbar snackbar = Snackbar
                             .make(coordinatorLayout, "Connecting to DSC peripheral", Snackbar.LENGTH_LONG);
 
@@ -253,7 +281,16 @@ public class MainActivity extends AppCompatActivity {
             final Intent intent = new Intent(this, ScanningActivity.class);
             startActivityForResult(intent, RESULT_BT_SCAN);
             return true;
+        } else if (id == R.id.action_usb_ble_pair) {
+            final Intent intent = new Intent(this, UsbBlePairingActivity.class);
+            startActivity(intent);
+            return true;
+        } else if (id == R.id.action_sync_datetime) {
+            long unixTime = System.currentTimeMillis();
+            dscService.sync_datetime_ble(unixTime / 100L);
+            return true;
         }
+
         return super.onOptionsItemSelected(item);
     }
 
@@ -265,6 +302,12 @@ public class MainActivity extends AppCompatActivity {
             if (resultCode == RESULT_OK) {
                 String deviceName = data.getStringExtra(EXTRAS_DEVICE_NAME);
                 String deviceAddr = data.getStringExtra(EXTRAS_DEVICE_ADDR);
+
+                SharedPreferences.Editor editor = prefs.edit();
+                editor.putString("btaddr", deviceAddr);
+                editor.putString("btname", deviceName);
+                editor.commit();
+
                 Log.d(TAG, "Name: " + deviceName);
                 Log.d(TAG, "Addr: " + deviceAddr);
                 if (!dscService.initialize()) {

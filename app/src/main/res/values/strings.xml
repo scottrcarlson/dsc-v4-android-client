@@ -5,6 +5,8 @@
     <string name="action_disconnect">Disconnect</string>
     <string name="action_connect">Connect</string>
     <string name="action_scan">Find Devices</string>
+    <string name="action_sync_datetime">Sync Datetime</string>
+    <string name="action_usb_ble_pair">Pair Device</string>
 
     <string name="hint_word">Word...</string>
     <string name="button_save">Save</string>
@@ -45,8 +47,9 @@
 
     <string name="pref_title_airplane_mode">Airplane Mode</string>
     <string name="pref_title_display_name">Your Alias</string>
-    <string name="pref_title_ble_mac">DSC BLE MAC</string>
-    <string name="pref_default_display_name">Nunayobusiness</string>
+    <string name="pref_title_ble_mac">Bluetooth Address</string>
+    <string name="pref_title_ble_name">Bluetooth Name</string>
+    <string name="pref_default_display_name">Gordon</string>
     <string name="pref_default_ble_mac"></string>
 
     <string-array name="pref_bandwidth_titles">
@@ -127,5 +130,6 @@
 
     <string name="channel_name">DSC New Message</string>
     <string name="channel_description">New Messages Inbound from LoRa</string>
+    <string name="title_activity_usb_ble_pairing">UsbBlePairingActivity</string>
 
 </resources>
