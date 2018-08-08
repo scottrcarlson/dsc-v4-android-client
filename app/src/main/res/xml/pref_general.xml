@@ -111,6 +111,21 @@
             android:singleLine="true"
             android:title="Syncword" />
     </PreferenceCategory>
+
+    <PreferenceCategory android:title="Crypto Keys">
+        <EditTextPreference
+            android:defaultValue=" "
+            android:key="netkey"
+            android:selectAllOnFocus="true"
+            android:singleLine="true"
+            android:title="Network Key (AES256)" />
+        <EditTextPreference
+            android:defaultValue=" "
+            android:key="groupkey"
+            android:selectAllOnFocus="true"
+            android:singleLine="true"
+            android:title="Group Key (AES256)" />
+    </PreferenceCategory>
     <!--<PreferenceCategory android:title="Notifications">
 
         <SwitchPreference

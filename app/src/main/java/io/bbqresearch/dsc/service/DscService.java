@@ -702,7 +702,10 @@ public class DscService extends Service {
 
             obj.put("topic", "setparms");
             obj.put("airplane_mode", prefs.getBoolean("airplane_mode", true));
+            obj.put("alias", prefs.getString("alias", ""));
             obj.put("freq", Integer.parseInt(prefs.getString("freq", "915000000")));
+            obj.put("netkey", prefs.getString("netkey", ""));
+            obj.put("groupkey", prefs.getString("groupkey", ""));
             obj.put("bw", Integer.parseInt(prefs.getString("bandwidth", "3")));
             obj.put("sp_factor", Integer.parseInt(prefs.getString("spread_factor", "11")));
             obj.put("coding_rate", Integer.parseInt(prefs.getString("coding_rate", "2")));
@@ -712,6 +715,7 @@ public class DscService extends Service {
             obj.put("total_nodes", Integer.parseInt(prefs.getString("total_nodes", "2")));
             obj.put("tdma_slot", Integer.parseInt(prefs.getString("tdma_slot", "0")));
             obj.put("tx_time", Integer.parseInt(prefs.getString("tx_time","4")));
+            obj.put("registered", true);
             mWriteCharacteristic.setValue(obj.toString());
             Log.d(TAG, obj.toString());
         } catch (Exception e) {

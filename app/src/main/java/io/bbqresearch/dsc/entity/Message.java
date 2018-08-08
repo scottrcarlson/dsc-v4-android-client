@@ -8,8 +8,10 @@ import android.support.annotation.NonNull;
 @Entity(tableName = "messages")
 public class Message {
 
-    @PrimaryKey(autoGenerate = true)
-    private int id;
+    @PrimaryKey
+    @NonNull
+    @ColumnInfo(name = "msgcypher")
+    private String msgcypher;
 
     @NonNull
     @ColumnInfo(name = "msg")
@@ -32,25 +34,18 @@ public class Message {
     @ColumnInfo(name = "isFromHere")
     private boolean isFromHere = false;
 
-    public Message(@NonNull String msg,
+    public Message(@NonNull String msgcypher,
+                   @NonNull String msg,
                    @NonNull String author,
                    @NonNull int origTimestamp,
                    @NonNull int recvTimestamp,
                    @NonNull boolean isFromHere) {
-        this.id = 0;
+        this.msgcypher = msgcypher;
         this.msg = msg;
         this.author = author;
         this.origTimestamp = origTimestamp;
         this.recvTimestamp = recvTimestamp;
         this.isFromHere = isFromHere;
-    }
-
-    public int getId() {
-        return id;
-    }
-
-    public void setId(int id) {
-        this.id = id;
     }
 
     public String getMsg() {
@@ -76,5 +71,9 @@ public class Message {
         return isFromHere;
     }
 
+    @NonNull
+    public String getMsgcypher() {
+        return msgcypher;
+    }
 
 }

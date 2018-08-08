@@ -63,11 +63,9 @@ public class MainActivity extends AppCompatActivity {
             }
             // Automatically connects to the device upon successful start-up initialization.
             if (!dscService.ismConnected()) {
-
-                //if device has been provisioned and save to preferences connect
-                //dscService.setBluetoothDeviceName("DSC");
-                //dscService.connect(DscGattAttributes.temp_mac_addr);
+                dscService.connect(prefs.getString("btaddr", ""));
             }
+
         }
 
         @Override
@@ -176,7 +174,10 @@ public class MainActivity extends AppCompatActivity {
         if (dscService != null) {
             if (!dscService.ismConnected()) {
                 final boolean result = dscService.connect(prefs.getString("btaddr", ""));
+                toolbar.setBackgroundResource(R.color.colorPrimaryDisconnected);
                 Log.d(TAG, "Connect request result=" + result);
+            } else {
+                toolbar.setBackgroundResource(R.color.colorPrimary);
             }
         }
     }
@@ -332,7 +333,7 @@ public class MainActivity extends AppCompatActivity {
         TextView sendMessage = findViewById(R.id.editText);
 
         if (!sendMessage.getText().toString().contentEquals("")) {
-            Message message = new Message(sendMessage.getText().toString(),
+            Message message = new Message("", sendMessage.getText().toString(),
                     "Bob", 0, 100, true);
             mMessageViewModel.insert(message);
             sendMessage.setText("");
@@ -340,7 +341,7 @@ public class MainActivity extends AppCompatActivity {
             InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
             imm.hideSoftInputFromWindow(v.getWindowToken(), 0);
         } else {
-            Message message = new Message("Hey blah blah blah, what happens when the messages is really long and drawn out.???",
+            Message message = new Message("", "Hey blah blah blah, what happens when the messages is really long and drawn out.???",
                     "Joe", 0, 100, false);
             mMessageViewModel.insert(message);
         }

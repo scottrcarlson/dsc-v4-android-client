@@ -64,7 +64,8 @@ public class MessageRepository extends BroadcastReceiver {
                 try {
                     JSONObject nodeRoot = new JSONObject(intent.getStringExtra(DscService.EXTRA_DATA));
                     JSONObject payload = nodeRoot.getJSONObject("payload");
-                    Message message = new Message(payload.getString("msg"),
+                    Message message = new Message(payload.getString("msgcypher"),
+                            payload.getString("msg"),
                             payload.getString("author"),
                             payload.getInt("sent_time"),
                             payload.getInt("recv_time"),
@@ -152,7 +153,11 @@ public class MessageRepository extends BroadcastReceiver {
 
         @Override
         protected Void doInBackground(final Message... params) {
-            mAsyncTaskDao.insert(params[0]);
+            try {
+                mAsyncTaskDao.insert(params[0]);
+            } catch (Exception e) {
+
+            }
             return null;
         }
     }

@@ -213,7 +213,15 @@ public class SettingsActivity extends AppCompatPreferenceActivity {
             pref.setSummary(shared_val);
             bindPreferenceSummaryToValue(pref);
 
+            //TODO Temporary, need to move keys to android keystore
+            pref = findPreference("netkey");
+            pref.setSummary(getPreferenceManager().getSharedPreferences().getString("netkey", " "));
+            bindPreferenceSummaryToValue(pref);
 
+            //TODO Temporary, need to move keys to android keystore
+            pref = findPreference("groupkey");
+            pref.setSummary(getPreferenceManager().getSharedPreferences().getString("groupkey", " "));
+            bindPreferenceSummaryToValue(pref);
             /*bindPreferenceSummaryToValue(findPreference("notifications_new_message"));
             bindPreferenceSummaryToValue(findPreference("notifications_new_message_ringtone"));
             bindPreferenceSummaryToValue(findPreference("notifications_new_message_vibrate"));*/
