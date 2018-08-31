@@ -5,11 +5,9 @@ import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.arch.lifecycle.Observer;
 import android.arch.lifecycle.ViewModelProviders;
-import android.content.BroadcastReceiver;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
-import android.content.IntentFilter;
 import android.content.ServiceConnection;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
@@ -34,12 +32,17 @@ import android.view.inputmethod.InputMethodManager;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.polidea.rxandroidble2.RxBleClient;
+import com.polidea.rxandroidble2.RxBleConnection;
+
 import java.util.List;
 
 import io.bbqresearch.dsc.entity.Message;
-import io.bbqresearch.dsc.service.DscService;
+import io.bbqresearch.dsc.service.DscServiceUpgrade;
 import io.bbqresearch.dsc.viewmodel.MessageViewModel;
 import io.bbqresearch.roomwordsample.R;
+import io.reactivex.android.schedulers.AndroidSchedulers;
+import io.reactivex.schedulers.Schedulers;
 
 public class MainActivity extends AppCompatActivity {
     private final static String TAG = MainActivity.class.getSimpleName();
@@ -49,7 +52,7 @@ public class MainActivity extends AppCompatActivity {
     private static final int REQUEST_ENABLE_BT = 1;
     private static final int PERMISSION_REQUEST_COARSE_LOCATION = 1;
     private static final int RESULT_BT_SCAN = 10;
-    private DscService dscService;
+    private DscServiceUpgrade dscService;
     private MessageViewModel mMessageViewModel;
     private boolean isNewSentMessage = false;
     private SharedPreferences prefs;
@@ -57,25 +60,46 @@ public class MainActivity extends AppCompatActivity {
 
         @Override
         public void onServiceConnected(ComponentName componentName, IBinder service) {
-            dscService = ((DscService.LocalBinder) service).getService();
-            if (!dscService.initialize()) {
-                Log.e(TAG, "Unable to initialize Bluetooth");
+            dscService = ((DscServiceUpgrade.LocalBinder) service).getService();
+            if (dscService.getRxBleClient().getState() != RxBleClient.State.READY) {
+                Log.e(TAG, "Bluetooth Not Ready: " + dscService.getRxBleClient().getState());
             }
             // Automatically connects to the device upon successful start-up initialization.
-            if (!dscService.ismConnected()) {
-                dscService.connect(prefs.getString("btaddr", ""));
+            String btaddr = prefs.getString("btaddr", "");
+            if (!dscService.isConnected()) {
+                if (!btaddr.contentEquals("")) {
+                    dscService.connect(btaddr);
+                }
             }
 
+            if (!btaddr.contentEquals("")) {
+                dscService.getRxBleClient().getBleDevice(btaddr).observeConnectionStateChanges()
+                        .subscribeOn(Schedulers.newThread())
+                        //.compose(bindUntilEvent(DESTROY))
+                        .observeOn(AndroidSchedulers.mainThread())
+                        .subscribe(this::onConnectionStateChange);
+            }
         }
 
         @Override
         public void onServiceDisconnected(ComponentName componentName) {
             dscService = null;
         }
+
+        private void onConnectionStateChange(RxBleConnection.RxBleConnectionState newState) {
+            Log.d(TAG, "Connection: " + newState);
+            if (newState == RxBleConnection.RxBleConnectionState.CONNECTED) {
+                toolbar.setBackgroundResource(R.color.colorPrimary);
+            } else if (newState == RxBleConnection.RxBleConnectionState.DISCONNECTED) {
+                toolbar.setBackgroundResource(R.color.colorPrimaryDisconnected);
+            }
+        }
     };
+
+
     private CoordinatorLayout coordinatorLayout;
     private Toolbar toolbar;
-    private final BroadcastReceiver dscUpdateReceiver = new BroadcastReceiver() {
+    /*private final BroadcastReceiver dscUpdateReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
             final String action = intent.getAction();
@@ -87,15 +111,15 @@ public class MainActivity extends AppCompatActivity {
                 toolbar.setBackgroundResource(R.color.colorPrimary);
             }
         }
-    };
+    };*/
 
-    private static IntentFilter makeGattUpdateIntentFilter() {
+   /* private static IntentFilter makeGattUpdateIntentFilter() {
         final IntentFilter intentFilter = new IntentFilter();
-        intentFilter.addAction(DscService.ACTION_READY);
-        intentFilter.addAction(DscService.ACTION_CONNECTED);
-        intentFilter.addAction(DscService.ACTION_DISCONNECTED);
+        intentFilter.addAction(DscServiceUpgrade.ACTION_READY);
+        intentFilter.addAction(DscServiceUpgrade.ACTION_CONNECTED);
+        intentFilter.addAction(DscServiceUpgrade.ACTION_DISCONNECTED);
         return intentFilter;
-    }
+    }*/
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -123,7 +147,6 @@ public class MainActivity extends AppCompatActivity {
         } else {
             // Permission has already been granted
         }
-
 
         setContentView(R.layout.activity_main);
 
@@ -158,9 +181,9 @@ public class MainActivity extends AppCompatActivity {
         coordinatorLayout = findViewById(R.id
                 .coordinatorLayout);
 
-        Intent gattServiceIntent = new Intent(this, DscService.class);
+        Intent gattServiceIntent = new Intent(this, DscServiceUpgrade.class);
         this.getApplicationContext().bindService(gattServiceIntent, mServiceConnection, Context.BIND_AUTO_CREATE);
-        this.registerReceiver(dscUpdateReceiver, makeGattUpdateIntentFilter());
+        //this.registerReceiver(dscUpdateReceiver, makeGattUpdateIntentFilter());
 
         createNotificationChannel();
 
@@ -170,14 +193,10 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onResume() {
         super.onResume();
-        registerReceiver(dscUpdateReceiver, makeGattUpdateIntentFilter());
+        //registerReceiver(dscUpdateReceiver, makeGattUpdateIntentFilter());
         if (dscService != null) {
-            if (!dscService.ismConnected()) {
-                final boolean result = dscService.connect(prefs.getString("btaddr", ""));
-                toolbar.setBackgroundResource(R.color.colorPrimaryDisconnected);
-                Log.d(TAG, "Connect request result=" + result);
-            } else {
-                toolbar.setBackgroundResource(R.color.colorPrimary);
+            if (!dscService.isConnected()) {
+                dscService.connect(prefs.getString("btaddr", ""));
             }
         }
     }
@@ -185,14 +204,14 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onPause() {
         super.onPause();
-        unregisterReceiver(dscUpdateReceiver);
+        //unregisterReceiver(dscUpdateReceiver);
     }
 
     @Override
     protected void onDestroy() {
         super.onDestroy();
         //unbindService(mServiceConnection);
-        dscService = null;
+        //dscService = null;
     }
     @Override
     public void onRequestPermissionsResult(int requestCode,
@@ -279,7 +298,7 @@ public class MainActivity extends AppCompatActivity {
             });
             return true;
         } else if (id == R.id.action_scan) {
-            final Intent intent = new Intent(this, ScanningActivity.class);
+            final Intent intent = new Intent(this, ScanningActivityUpgrade.class);
             startActivityForResult(intent, RESULT_BT_SCAN);
             return true;
         } else if (id == R.id.action_usb_ble_pair) {
@@ -287,8 +306,7 @@ public class MainActivity extends AppCompatActivity {
             startActivity(intent);
             return true;
         } else if (id == R.id.action_sync_datetime) {
-            long unixTime = System.currentTimeMillis();
-            dscService.sync_datetime_ble(unixTime / 100L);
+            dscService.dscSyncTime();
             return true;
         }
 
@@ -311,12 +329,11 @@ public class MainActivity extends AppCompatActivity {
 
                 Log.d(TAG, "Name: " + deviceName);
                 Log.d(TAG, "Addr: " + deviceAddr);
-                if (!dscService.initialize()) {
-                    Log.e(TAG, "Unable to initialize Bluetooth");
+                if (dscService.getRxBleClient().getState() != RxBleClient.State.READY) {
+                    Log.e(TAG, "Bluetooth Not Ready: " + dscService.getRxBleClient().getState());
                 }
                 // Automatically connects to the device upon successful start-up initialization.
-                if (!dscService.ismConnected()) {
-                    dscService.setBluetoothDeviceName(deviceName);
+                if (!dscService.isConnected()) {
                     dscService.connect(deviceAddr);
 
                     Snackbar snackbar = Snackbar

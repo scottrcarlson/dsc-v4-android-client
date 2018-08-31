@@ -131,5 +131,6 @@
     <string name="channel_name">DSC New Message</string>
     <string name="channel_description">New Messages Inbound from LoRa</string>
     <string name="title_activity_usb_ble_pairing">UsbBlePairingActivity</string>
+    <string name="title_activity_scanning_upgrade">ScanningActivityUpgrade</string>
 
 </resources>

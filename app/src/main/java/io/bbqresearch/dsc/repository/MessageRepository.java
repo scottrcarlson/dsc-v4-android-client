@@ -11,7 +11,6 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.ServiceConnection;
 import android.os.AsyncTask;
-import android.os.Handler;
 import android.os.IBinder;
 import android.support.v4.app.NotificationCompat;
 import android.support.v4.app.NotificationManagerCompat;
@@ -25,44 +24,21 @@ import io.bbqresearch.dsc.MainActivity;
 import io.bbqresearch.dsc.dao.MessageDao;
 import io.bbqresearch.dsc.entity.Message;
 import io.bbqresearch.dsc.room.MessageRoomDatabase;
-import io.bbqresearch.dsc.service.DscService;
+import io.bbqresearch.dsc.service.DscServiceUpgrade;
 import io.bbqresearch.roomwordsample.R;
 
 public class MessageRepository extends BroadcastReceiver {
     private final static String TAG = MessageRepository.class.getSimpleName();
 
     public static final String NOTIFY_CHANNEL_DSC = "DSC_NOTIFY_CHANNEL";
-    private DscService dscService;
-    // Code to manage Service lifecycle.
-    private final ServiceConnection mServiceConnection = new ServiceConnection() {
-
-        @Override
-        public void onServiceConnected(ComponentName componentName, IBinder service) {
-            dscService = ((DscService.LocalBinder) service).getService();
-        }
-
-        @Override
-        public void onServiceDisconnected(ComponentName componentName) {
-            dscService = null;
-        }
-    };
-
     private final BroadcastReceiver dscUpdateReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
             final String action = intent.getAction();
-            if (DscService.ACTION_READY.equals(action)) {
-                // Connected and Proper DSC GATT Services Available
-                final Handler handler = new Handler();
-                handler.postDelayed(new Runnable() {
-                    @Override
-                    public void run() {
-                        dscService.readParams_ble();
-                    }
-                }, 3000);
-            } else if (DscService.ACTION_NEW_MESSAGE.equals(action)) {
+
+            if (DscServiceUpgrade.ACTION_NEW_MESSAGE.equals(action)) {
                 try {
-                    JSONObject nodeRoot = new JSONObject(intent.getStringExtra(DscService.EXTRA_DATA));
+                    JSONObject nodeRoot = new JSONObject(intent.getStringExtra(DscServiceUpgrade.EXTRA_DATA));
                     JSONObject payload = nodeRoot.getJSONObject("payload");
                     Message message = new Message(payload.getString("msgcypher"),
                             payload.getString("msg"),
@@ -98,6 +74,20 @@ public class MessageRepository extends BroadcastReceiver {
 
         }
     };
+    private DscServiceUpgrade dscService;
+    // Code to manage Service lifecycle.
+    private final ServiceConnection mServiceConnection = new ServiceConnection() {
+
+        @Override
+        public void onServiceConnected(ComponentName componentName, IBinder service) {
+            dscService = ((DscServiceUpgrade.LocalBinder) service).getService();
+        }
+
+        @Override
+        public void onServiceDisconnected(ComponentName componentName) {
+            dscService = null;
+        }
+    };
 
     private MessageDao mMessageDao;
     private LiveData<List<Message>> mAllMessages;
@@ -107,9 +97,11 @@ public class MessageRepository extends BroadcastReceiver {
         mMessageDao = db.messageDao();
         mAllMessages = mMessageDao.getAllMessages();
 
-        Intent gattServiceIntent = new Intent(application, DscService.class);
+        Intent gattServiceIntent = new Intent(application, DscServiceUpgrade.class);
         application.getApplicationContext().bindService(gattServiceIntent, mServiceConnection, Context.BIND_AUTO_CREATE);
         application.registerReceiver(dscUpdateReceiver, makeGattUpdateIntentFilter());
+
+
         /*if (dscService != null) {
             if (!dscService.ismConnected()) {
                 final boolean result = dscService.connect();
@@ -120,8 +112,7 @@ public class MessageRepository extends BroadcastReceiver {
 
     private static IntentFilter makeGattUpdateIntentFilter() {
         final IntentFilter intentFilter = new IntentFilter();
-        intentFilter.addAction(DscService.ACTION_READY);
-        intentFilter.addAction(DscService.ACTION_NEW_MESSAGE);
+        intentFilter.addAction(DscServiceUpgrade.ACTION_NEW_MESSAGE);
         return intentFilter;
     }
 
@@ -129,7 +120,7 @@ public class MessageRepository extends BroadcastReceiver {
     public void onReceive(Context context, Intent intent) {
         Log.e(TAG, "onReceive Called: " + intent.getAction());
         /***** For start Service  ****/
-        Intent myIntent = new Intent(context, DscService.class);
+        Intent myIntent = new Intent(context, DscServiceUpgrade.class);
         context.startService(myIntent);
     }
 

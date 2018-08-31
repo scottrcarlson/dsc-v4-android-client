@@ -34,29 +34,22 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-        <activity
-            android:name="io.bbqresearch.dsc.ScanningActivity"
-            android:theme="@style/AppTheme.NoActionBar" />
+
         <activity android:name="io.bbqresearch.dsc.NewWordActivity" />
         <activity
             android:name="io.bbqresearch.dsc.SettingsActivity"
             android:label="@string/title_activity_settings" />
-
         <service
-            android:name="io.bbqresearch.dsc.service.DscService"
+            android:name="io.bbqresearch.dsc.service.DscServiceUpgrade"
             android:enabled="true"
             android:exported="false" />
 
-        <activity
-            android:name="io.bbqresearch.dsc.ScanningActivityCruft"
-            android:label="@string/title_activity_scanning"
-            android:theme="@style/AppTheme.NoActionBar" />
+
         <activity
             android:name="io.bbqresearch.dsc.UsbBlePairingActivity"
             android:label="@string/title_activity_usb_ble_pairing"
             android:parentActivityName="io.bbqresearch.dsc.MainActivity"
             android:theme="@style/AppTheme.NoActionBar">
-
             <intent-filter>
                 <action android:name="android.hardware.usb.action.USB_DEVICE_ATTACHED" />
             </intent-filter>
@@ -64,11 +57,14 @@
             <meta-data
                 android:name="android.hardware.usb.action.USB_DEVICE_ATTACHED"
                 android:resource="@xml/device_filter" />
-
             <meta-data
                 android:name="android.support.PARENT_ACTIVITY"
                 android:value="io.bbqresearch.dsc.MainActivity" />
         </activity>
+        <activity
+            android:name="io.bbqresearch.dsc.ScanningActivityUpgrade"
+            android:label="@string/title_activity_scanning_upgrade"
+            android:theme="@style/AppTheme.NoActionBar"></activity>
     </application>
 
 </manifest>
