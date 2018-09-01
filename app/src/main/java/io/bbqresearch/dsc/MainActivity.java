@@ -1,8 +1,10 @@
 package io.bbqresearch.dsc;
 
 import android.Manifest;
+import android.app.Notification;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
+import android.app.PendingIntent;
 import android.arch.lifecycle.Observer;
 import android.arch.lifecycle.ViewModelProviders;
 import android.content.ComponentName;
@@ -19,6 +21,8 @@ import android.support.annotation.Nullable;
 import android.support.design.widget.CoordinatorLayout;
 import android.support.design.widget.Snackbar;
 import android.support.v4.app.ActivityCompat;
+import android.support.v4.app.NotificationCompat;
+import android.support.v4.app.NotificationManagerCompat;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.LinearLayoutManager;
@@ -50,6 +54,7 @@ public class MainActivity extends AppCompatActivity {
     public static final String EXTRAS_DEVICE_NAME = "DEVICE_NAME";
     public static final String EXTRAS_DEVICE_ADDR = "DEVICE_ADDR";
     public static final String NOTIFY_CHANNEL_DSC = "DSC_NOTIFY_CHANNEL";
+    private NotificationManagerCompat notificationManager;
     private static final int REQUEST_ENABLE_BT = 1;
     private static final int PERMISSION_REQUEST_COARSE_LOCATION = 1;
     private static final int RESULT_BT_SCAN = 10;
@@ -90,9 +95,29 @@ public class MainActivity extends AppCompatActivity {
         private void onConnectionStateChange(RxBleConnection.RxBleConnectionState newState) {
             Log.d(TAG, "Connection: " + newState);
             if (newState == RxBleConnection.RxBleConnectionState.CONNECTED) {
+
                 toolbar.setBackgroundResource(R.color.colorPrimary);
+                Intent intentNotify = new Intent(getApplicationContext(), MainActivity.class);
+                intentNotify.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+                PendingIntent pendingIntent = PendingIntent.getActivity(getApplicationContext(), 0, intentNotify, 0);
+
+                NotificationCompat.Builder mBuilder = new NotificationCompat.Builder(getApplicationContext(), NOTIFY_CHANNEL_DSC)
+                        .setSmallIcon(R.drawable.ic_twotone_router_24px)
+                        .setContentTitle("Dirt Simple Comms Connected")
+                        .setContentText("You are currently connected to the DSC network")
+                        .setStyle(new NotificationCompat.BigTextStyle()
+                                .bigText("Put a button here to disconnect from DSC network"))
+                        .setPriority(NotificationCompat.PRIORITY_HIGH)
+                        .setContentIntent(pendingIntent)
+                        .setDefaults(Notification.DEFAULT_SOUND)
+                        .setOngoing(true);
+                notificationManager = NotificationManagerCompat.from(getApplicationContext());
+
+                // notificationId is a unique int for each notification that you must define
+                notificationManager.notify(2, mBuilder.build());
             } else if (newState == RxBleConnection.RxBleConnectionState.DISCONNECTED) {
                 toolbar.setBackgroundResource(R.color.colorPrimaryDisconnected);
+                if (notificationManager != null) notificationManager.cancel(2);
             }
         }
     };
@@ -152,7 +177,7 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
 
         toolbar = findViewById(R.id.toolbar);
-        toolbar.setBackgroundResource(R.color.colorPrimaryDisconnected);
+        //toolbar.setBackgroundResource(R.color.colorPrimaryDisconnected);
         setSupportActionBar(toolbar);
 
         final RecyclerView recyclerView = findViewById(R.id.recyclerview);
@@ -169,7 +194,7 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onChanged(@Nullable final List<Message> messages) {
                 // Update the cached copy of the words in the adapter.
-                Log.d(TAG, "1***********Message List Size: " + messages.size());
+
                 adapter.setMessages(messages);
 
                 if (isNewSentMessage) {
@@ -198,7 +223,10 @@ public class MainActivity extends AppCompatActivity {
         //registerReceiver(dscUpdateReceiver, makeGattUpdateIntentFilter());
         if (dscService != null) {
             if (!dscService.isConnected()) {
+                toolbar.setBackgroundResource(R.color.colorPrimaryDisconnected);
                 dscService.connect(prefs.getString("btaddr", ""));
+            } else {
+                toolbar.setBackgroundResource(R.color.colorPrimary);
             }
         }
     }

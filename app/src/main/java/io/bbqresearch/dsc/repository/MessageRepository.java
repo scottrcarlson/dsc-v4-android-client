@@ -54,7 +54,7 @@ public class MessageRepository extends BroadcastReceiver {
                     PendingIntent pendingIntent = PendingIntent.getActivity(context, 0, intentNotify, 0);
 
                     NotificationCompat.Builder mBuilder = new NotificationCompat.Builder(context, NOTIFY_CHANNEL_DSC)
-                            .setSmallIcon(R.drawable.ic_smoking_rooms_black_24dp)
+                            .setSmallIcon(R.drawable.ic_twotone_whatshot_24px)
                             .setContentTitle("Dirt Simple Comms")
                             .setContentText("New message from " + payload.getString("author"))
                             .setStyle(new NotificationCompat.BigTextStyle()

@@ -12,7 +12,7 @@
         android:layout_width="34dp"
         android:layout_height="34dp"
         android:layout_alignParentLeft="true"
-        android:background="@drawable/ic_smoking_rooms_black_24dp"
+        android:background="@drawable/ic_twotone_whatshot_24px"
         android:scaleType="centerInside" />
 
     <TextView
