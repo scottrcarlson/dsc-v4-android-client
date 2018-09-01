@@ -17,7 +17,9 @@ import org.json.JSONObject;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 
+import io.bbqresearch.dsc.entity.Message;
 import io.reactivex.Observable;
 import io.reactivex.disposables.Disposable;
 import io.reactivex.schedulers.Schedulers;
@@ -28,19 +30,30 @@ public class DscServiceUpgrade extends Service {
             "io.bbqresearch.android.dirtsimplecomms.NEW_MESSAGE";
     public final static String EXTRA_DATA =
             "io.bbqresearch.android.dirtsimplecomms.EXTRA_DATA";
+    public final static String ACTION_NEW_DEVICE_STATUS =
+            "io.bbqresearch.android.dirtsimplecomms.ACTION_NEW_DEVICE_STATUS";
+
     private final static String TAG = DscServiceUpgrade.class.getSimpleName();
     private final IBinder mBinder = new DscServiceUpgrade.LocalBinder();
     private SharedPreferences.OnSharedPreferenceChangeListener listener;
     private Disposable disposableConnection;
     private RxBleClient rxBleClient;
     private RxBleDevice rxBleDevice;
+    private volatile int bleRssi = 0;
 
     private PublishSubject<Boolean> disconnectTriggerSubject = PublishSubject.create();
+    private PublishSubject<Boolean> disableStatusNotification = PublishSubject.create();
     private Observable<RxBleConnection> connectionObservable;
 
+
     public RxBleClient getRxBleClient() {
-        return rxBleClient;
+        return this.rxBleClient;
     }
+
+    public RxBleDevice getRxBleDevice() {
+        return this.rxBleDevice;
+    }
+
 
     @Override
     public void onCreate() {
@@ -127,6 +140,32 @@ public class DscServiceUpgrade extends Service {
                 );
     }
 
+    public void sendMsg(Message message) {
+        JSONObject obj = new JSONObject();
+        try {
+            obj.put("topic", "sendmsg");
+            obj.put("msg", message.getMsg());
+            obj.put("author", message.getAuthor());
+            obj.put("recv_time", message.getOrigTimestamp());
+            obj.put("lat", -73);
+            obj.put("long", 45);
+            obj.put("msg_cipher", "");
+            connectionObservable
+                    .subscribeOn(Schedulers.newThread())
+                    .firstOrError()
+                    .flatMap(rxBleConnection -> rxBleConnection.writeCharacteristic(UUID.fromString(DscGattAttributes.DSC_MSG_OUTBOUND), obj.toString().getBytes()))
+                    .observeOn(Schedulers.newThread())
+                    .subscribe(
+                            bytes -> onWriteSuccess(),
+                            this::onWriteFailure
+                    );
+
+        } catch (Exception e) {
+            Log.e(TAG, Log.getStackTraceString(e));
+        }
+
+    }
+
     public void connect(final String macAddress) {
         rxBleDevice = rxBleClient.getBleDevice(macAddress);
         if (!isConnected()) {
@@ -138,9 +177,32 @@ public class DscServiceUpgrade extends Service {
                     .doOnNext(notificationObservable -> Log.d(TAG, "Notification Setup"))
                     .flatMap(notificationObservable -> notificationObservable)
                     .subscribe(this::onNotificationReceived, this::onNotificationSetupFailure);
+
+            connectionObservable
+                    .flatMap(rxBleConnection -> // Set desired interval.
+                            Observable.interval(2, TimeUnit.SECONDS).flatMapSingle(sequence -> rxBleConnection.readRssi()))
+                    .observeOn(Schedulers.newThread())
+                    .subscribe(this::updateRssi, this::onConnectionFailure);
         }
     }
 
+    public void updateRssi(int rssi) {
+        bleRssi = rssi;
+    }
+
+    public void enableStatusNotification(boolean enabled) {
+        if (enabled) {
+            connectionObservable
+                    .subscribeOn(Schedulers.newThread())
+                    .flatMap(rxBleConnection -> rxBleConnection.setupNotification(UUID.fromString(DscGattAttributes.DSC_STATUS_UUID)))
+                    .doOnNext(notificationObservable -> Log.d(TAG, "Notification Setup"))
+                    .flatMap(notificationObservable -> notificationObservable)
+                    .takeUntil(disableStatusNotification)
+                    .subscribe(this::onNotificationReceived, this::onNotificationSetupFailure);
+        } else {
+            disableStatusNotification.onNext(true);
+        }
+    }
     public boolean isConnected() {
         if (rxBleDevice != null) {
             return rxBleDevice.getConnectionState() == RxBleConnection.RxBleConnectionState.CONNECTED;
@@ -171,6 +233,10 @@ public class DscServiceUpgrade extends Service {
         return "";
     }
 
+    // Read BLE signal strength
+    public int readBleRssi() {
+        return bleRssi;
+    }
     private void processInboundFromDsc(String jsonmsg) {
         //Log.d(TAG, "Got Json String: " + jsonmsg);
 
@@ -182,6 +248,11 @@ public class DscServiceUpgrade extends Service {
             intent.putExtra(EXTRA_DATA, jsonmsg);
             sendBroadcast(intent);
             Log.d(TAG, "newmsg: " + jsonmsg);
+        } else if (getTopic(jsonmsg).contentEquals("status")) {
+            final Intent intent = new Intent(ACTION_NEW_DEVICE_STATUS);
+            intent.putExtra(EXTRA_DATA, jsonmsg);
+            sendBroadcast(intent);
+            Log.d(TAG, "status: " + jsonmsg);
         } else {
             Log.d(TAG, "Unknown Incoming: " + jsonmsg.toString());
         }
@@ -223,6 +294,7 @@ public class DscServiceUpgrade extends Service {
 
     public void disconnect() {
         disconnectTriggerSubject.onNext(true);
+
     }
 
 

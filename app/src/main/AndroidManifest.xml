@@ -34,16 +34,15 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-
         <activity android:name="io.bbqresearch.dsc.NewWordActivity" />
         <activity
             android:name="io.bbqresearch.dsc.SettingsActivity"
             android:label="@string/title_activity_settings" />
+
         <service
             android:name="io.bbqresearch.dsc.service.DscServiceUpgrade"
             android:enabled="true"
             android:exported="false" />
-
 
         <activity
             android:name="io.bbqresearch.dsc.UsbBlePairingActivity"
@@ -64,7 +63,12 @@
         <activity
             android:name="io.bbqresearch.dsc.ScanningActivityUpgrade"
             android:label="@string/title_activity_scanning_upgrade"
-            android:theme="@style/AppTheme.NoActionBar"></activity>
+            android:theme="@style/AppTheme.NoActionBar" />
+        <activity
+            android:name="io.bbqresearch.dsc.StatusActivity"
+            android:label="@string/title_activity_status">
+
+        </activity>
     </application>
 
 </manifest>

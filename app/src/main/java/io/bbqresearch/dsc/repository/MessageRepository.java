@@ -43,8 +43,9 @@ public class MessageRepository extends BroadcastReceiver {
                     Message message = new Message(payload.getString("msgcypher"),
                             payload.getString("msg"),
                             payload.getString("author"),
-                            payload.getInt("sent_time"),
-                            payload.getInt("recv_time"),
+                            payload.getLong("sent_time"),
+                            System.currentTimeMillis() / 1000L,
+                            //payload.getLong("recv_time"),
                             false);
                     new insertAsyncTask(mMessageDao).execute(message);
 

@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <item
+        android:id="@+id/navigation_status_device"
+
+        android:title="@string/title_status_device" />
+
+    <item
+        android:id="@+id/navigation_status_peers"
+
+        android:title="@string/title_status_peers" />
+
+    <item
+        android:id="@+id/navigation_status_logs"
+
+        android:title="@string/title_status_logs" />
+
+</menu>

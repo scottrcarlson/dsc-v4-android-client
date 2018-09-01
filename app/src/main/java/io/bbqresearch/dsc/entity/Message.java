@@ -23,11 +23,11 @@ public class Message {
 
     @NonNull
     @ColumnInfo(name = "orig_timestamp")
-    private int origTimestamp;
+    private long origTimestamp;
 
     @NonNull
     @ColumnInfo(name = "recv_timestamp")
-    private int recvTimestamp;
+    private long recvTimestamp;
 
 
     @NonNull
@@ -37,8 +37,8 @@ public class Message {
     public Message(@NonNull String msgcypher,
                    @NonNull String msg,
                    @NonNull String author,
-                   @NonNull int origTimestamp,
-                   @NonNull int recvTimestamp,
+                   @NonNull long origTimestamp,
+                   @NonNull long recvTimestamp,
                    @NonNull boolean isFromHere) {
         this.msgcypher = msgcypher;
         this.msg = msg;
@@ -57,12 +57,12 @@ public class Message {
     }
 
     @NonNull
-    public int getOrigTimestamp() {
+    public long getOrigTimestamp() {
         return origTimestamp;
     }
 
     @NonNull
-    public int getRecvTimestamp() {
+    public long getRecvTimestamp() {
         return recvTimestamp;
     }
 

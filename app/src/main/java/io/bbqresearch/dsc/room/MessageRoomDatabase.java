@@ -11,7 +11,7 @@ import android.support.annotation.NonNull;
 import io.bbqresearch.dsc.dao.MessageDao;
 import io.bbqresearch.dsc.entity.Message;
 
-@Database(entities = {Message.class}, version = 4)
+@Database(entities = {Message.class}, version = 5)
 public abstract class MessageRoomDatabase extends RoomDatabase {
 
     private static MessageRoomDatabase INSTANCE;

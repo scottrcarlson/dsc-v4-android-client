@@ -34,6 +34,7 @@ public class DscGattAttributes {
 
     public static String DSC_SERVICE_UUID = "deadbeef-0011-1001-1100-00000fffddd0";
     public static String DSC_SETTINGS_UUID = "deadbeef-0011-1001-1100-00000fffddd1";
+    public static String DSC_STATUS_UUID = "deadbeef-0011-1001-1100-00000fffddd2";
     public static String DSC_MSG_INBOUND_UUID = "deadbeef-0011-1001-1100-00000fffddda";
     public static String DSC_MSG_OUTBOUND = "deadbeef-0011-1001-1100-00000fffdddb";
     public static String DSC_DATETIME_UUID = "deadbeef-0011-1001-1100-00000fffdddc";

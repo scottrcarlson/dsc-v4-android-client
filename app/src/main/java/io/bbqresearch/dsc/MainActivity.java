@@ -36,6 +36,7 @@ import com.polidea.rxandroidble2.RxBleClient;
 import com.polidea.rxandroidble2.RxBleConnection;
 
 import java.util.List;
+import java.util.Random;
 
 import io.bbqresearch.dsc.entity.Message;
 import io.bbqresearch.dsc.service.DscServiceUpgrade;
@@ -168,6 +169,7 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onChanged(@Nullable final List<Message> messages) {
                 // Update the cached copy of the words in the adapter.
+                Log.d(TAG, "1***********Message List Size: " + messages.size());
                 adapter.setMessages(messages);
 
                 if (isNewSentMessage) {
@@ -263,6 +265,10 @@ public class MainActivity extends AppCompatActivity {
             final Intent intent = new Intent(this, SettingsActivity.class);
             startActivity(intent);
             return true;
+        } else if (id == R.id.action_status) {
+            final Intent intent = new Intent(this, StatusActivity.class);
+            startActivity(intent);
+            return true;
         } else if (id == R.id.action_delete_messages) {
             AsyncTask.execute(new Runnable() {
                 @Override
@@ -302,8 +308,17 @@ public class MainActivity extends AppCompatActivity {
             startActivityForResult(intent, RESULT_BT_SCAN);
             return true;
         } else if (id == R.id.action_usb_ble_pair) {
-            final Intent intent = new Intent(this, UsbBlePairingActivity.class);
-            startActivity(intent);
+            /*final Intent intent = new Intent(this, UsbBlePairingActivity.class);
+            startActivity(intent);*/
+            List<Message> msgs = mMessageViewModel.getAllMessages().getValue();
+            for (int i = 0; i < msgs.size(); i++) {
+                Log.d(TAG, msgs.get(i).getMsg());
+                Log.d(TAG, msgs.get(i).getAuthor());
+                Log.d(TAG, "" + msgs.get(i).getOrigTimestamp());
+                Log.d(TAG, "" + msgs.get(i).getRecvTimestamp());
+            }
+            Log.d(TAG, "********** " + mMessageViewModel.getAllMessages().getValue().size());
+
             return true;
         } else if (id == R.id.action_sync_datetime) {
             dscService.dscSyncTime();
@@ -350,13 +365,21 @@ public class MainActivity extends AppCompatActivity {
         TextView sendMessage = findViewById(R.id.editText);
 
         if (!sendMessage.getText().toString().contentEquals("")) {
-            Message message = new Message("", sendMessage.getText().toString(),
-                    "Bob", 0, 100, true);
+            long time = System.currentTimeMillis() / 1000L;
+
+            Random rand = new Random();
+
+            String tempCipher = String.valueOf(rand.nextInt(5000) + 1);
+
+            Message message = new Message(tempCipher, sendMessage.getText().toString(),
+                    prefs.getString("alias", "unnamed_1"), time, time, true);
             mMessageViewModel.insert(message);
+            dscService.sendMsg(message);
             sendMessage.setText("");
             sendMessage.clearFocus();
             InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
             imm.hideSoftInputFromWindow(v.getWindowToken(), 0);
+
         } else {
             Message message = new Message("", "Hey blah blah blah, what happens when the messages is really long and drawn out.???",
                     "Joe", 0, 100, false);

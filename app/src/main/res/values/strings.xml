@@ -7,6 +7,7 @@
     <string name="action_scan">Find Devices</string>
     <string name="action_sync_datetime">Sync Datetime</string>
     <string name="action_usb_ble_pair">Pair Device</string>
+    <string name="action_status">Status</string>
 
     <string name="hint_word">Word...</string>
     <string name="button_save">Save</string>
@@ -36,6 +37,11 @@
     <string name="menu_scan">Scan</string>
     <string name="menu_stop">Stop</string>
 
+
+    <!-- ***** Status Menu -->
+    <string name="title_status_device">Device</string>
+    <string name="title_status_peers">Peers</string>
+    <string name="title_status_logs">Logs</string>
 
     <!-- ***** General settings -->
     <string name="pref_header_general">General</string>
@@ -132,5 +138,12 @@
     <string name="channel_description">New Messages Inbound from LoRa</string>
     <string name="title_activity_usb_ble_pairing">UsbBlePairingActivity</string>
     <string name="title_activity_scanning_upgrade">ScanningActivityUpgrade</string>
+    <string name="title_activity_status">StatusActivity</string>
+    <string name="title_home">Home</string>
+    <string name="title_dashboard">Dashboard</string>
+    <string name="title_notifications">Notifications</string>
+
+    <!-- TODO: Remove or change this placeholder text -->
+    <string name="hello_blank_fragment">Hello blank fragment</string>
 
 </resources>

@@ -94,9 +94,6 @@ public class SettingsActivity extends AppCompatPreferenceActivity {
         super.onCreate(savedInstanceState);
         setupActionBar();
         this.getFragmentManager().beginTransaction().replace(android.R.id.content, new GeneralPreferenceFragment()).commit();
-        //Intent intent = new Intent(SettingsActivity.this, GeneralPreferenceFragment.class);
-        //startActivityForResult(intent, GENERAL_PREF_FRAG_REQ_CODE);
-
     }
 
     /**
@@ -109,23 +106,6 @@ public class SettingsActivity extends AppCompatPreferenceActivity {
             actionBar.setDisplayHomeAsUpEnabled(true);
         }
     }
-
-    /*   /**
-     * {@inheritDoc}
-     */
-   /* @Override
-    public boolean onIsMultiPane() {
-        return isXLargeTablet(this);
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    /*@Override
-    @TargetApi(Build.VERSION_CODES.HONEYCOMB)
-    public void onBuildHeaders(List<Header> target) {
-        loadHeadersFromResource(R.xml.pref_headers, target);
-    }*/
 
     /**
      * This method stops fragment injection in malicious applications.
@@ -190,7 +170,7 @@ public class SettingsActivity extends AppCompatPreferenceActivity {
             bindPreferenceSummaryToValue(pref);
 
             pref = findPreference("freq");
-            pref.setSummary(getPreferenceManager().getSharedPreferences().getString("freq", "915.000"));
+            pref.setSummary(getPreferenceManager().getSharedPreferences().getString("freq", "915000000"));
             bindPreferenceSummaryToValue(pref);
 
             shared_val = getPreferenceManager().getSharedPreferences().getString("bandwidth", "3");
@@ -203,7 +183,7 @@ public class SettingsActivity extends AppCompatPreferenceActivity {
             pref.setSummary(shared_val);
             bindPreferenceSummaryToValue(pref);
 
-            shared_val = getPreferenceManager().getSharedPreferences().getString("coding_rate", "2");
+            shared_val = getPreferenceManager().getSharedPreferences().getString("coding_rate", "0");
             pref = findPreference("coding_rate");
             pref.setSummary(shared_val);
             bindPreferenceSummaryToValue(pref);

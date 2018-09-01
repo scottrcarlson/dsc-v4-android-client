@@ -6,8 +6,8 @@ import android.arch.lifecycle.LiveData;
 
 import java.util.List;
 
-import io.bbqresearch.dsc.repository.MessageRepository;
 import io.bbqresearch.dsc.entity.Message;
+import io.bbqresearch.dsc.repository.MessageRepository;
 
 public class MessageViewModel extends AndroidViewModel {
 
@@ -19,7 +19,6 @@ public class MessageViewModel extends AndroidViewModel {
         super(application);
         mRepository = new MessageRepository(application);
         mAllMessages = mRepository.getAllMessages();
-
 
     }
 
