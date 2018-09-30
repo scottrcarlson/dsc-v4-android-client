@@ -22,6 +22,9 @@ public class StatusActivity extends AppCompatActivity {
     private StatusLogsFragment logsFragment = new StatusLogsFragment();
 
     private StatusViewModel mStatusViewModel;
+    private ActionBar actionBar;
+
+
     private BottomNavigationView.OnNavigationItemSelectedListener mOnNavigationItemSelectedListener
             = new BottomNavigationView.OnNavigationItemSelectedListener() {
 
@@ -33,17 +36,19 @@ public class StatusActivity extends AppCompatActivity {
                             .replace(R.id.status_content, deviceFragment).commit();
                     // Turn on Status Notifications
                     mStatusViewModel.enableDeviceStatus(true);
-
+                    actionBar.setTitle("Device Status");
                     return true;
                 case R.id.navigation_status_peers:
                     getSupportFragmentManager().beginTransaction()
                             .replace(R.id.status_content, peersFragment).commit();
                     mStatusViewModel.enableDeviceStatus(false);
+                    actionBar.setTitle("Peer Status");
                     return true;
                 case R.id.navigation_status_logs:
                     getSupportFragmentManager().beginTransaction()
                             .replace(R.id.status_content, logsFragment).commit();
                     mStatusViewModel.enableDeviceStatus(false);
+                    actionBar.setTitle("Device Logs");
                     return true;
             }
             return false;
@@ -105,10 +110,11 @@ public class StatusActivity extends AppCompatActivity {
     }
 
     private void setupActionBar() {
-        ActionBar actionBar = getSupportActionBar();
+        actionBar = getSupportActionBar();
         if (actionBar != null) {
             // Show the Up button in the action bar.
             actionBar.setDisplayHomeAsUpEnabled(true);
+            actionBar.setTitle("Device Status");
         }
     }
 

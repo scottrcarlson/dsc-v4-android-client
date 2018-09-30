@@ -42,9 +42,11 @@ import com.polidea.rxandroidble2.RxBleConnection;
 import java.util.List;
 import java.util.Random;
 
+import io.bbqresearch.dsc.adapter.MessageListAdapter;
 import io.bbqresearch.dsc.entity.Message;
 import io.bbqresearch.dsc.service.DscServiceUpgrade;
 import io.bbqresearch.dsc.viewmodel.MessageViewModel;
+import io.bbqresearch.dsc.viewmodel.PeerViewModel;
 import io.bbqresearch.roomwordsample.R;
 import io.reactivex.android.schedulers.AndroidSchedulers;
 import io.reactivex.schedulers.Schedulers;
@@ -94,8 +96,9 @@ public class MainActivity extends AppCompatActivity {
 
         private void onConnectionStateChange(RxBleConnection.RxBleConnectionState newState) {
             Log.d(TAG, "Connection: " + newState);
-            if (newState == RxBleConnection.RxBleConnectionState.CONNECTED) {
 
+            if (newState == RxBleConnection.RxBleConnectionState.CONNECTED) {
+                invalidateOptionsMenu();
                 toolbar.setBackgroundResource(R.color.colorPrimary);
                 Intent intentNotify = new Intent(getApplicationContext(), MainActivity.class);
                 intentNotify.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
@@ -116,6 +119,7 @@ public class MainActivity extends AppCompatActivity {
                 // notificationId is a unique int for each notification that you must define
                 notificationManager.notify(2, mBuilder.build());
             } else if (newState == RxBleConnection.RxBleConnectionState.DISCONNECTED) {
+                invalidateOptionsMenu();
                 toolbar.setBackgroundResource(R.color.colorPrimaryDisconnected);
                 if (notificationManager != null) notificationManager.cancel(2);
             }
@@ -197,11 +201,15 @@ public class MainActivity extends AppCompatActivity {
 
                 adapter.setMessages(messages);
 
-                if (isNewSentMessage) {
-                    isNewSentMessage = false;
+                //if (isNewSentMessage) {
+                //isNewSentMessage = false;
+                try {
                     recyclerView.smoothScrollToPosition(messages.size() - 1);
                     adapter.notifyDataSetChanged();
+                } catch (Exception e) {
+
                 }
+                //}
             }
         });
 
@@ -215,6 +223,9 @@ public class MainActivity extends AppCompatActivity {
         createNotificationChannel();
 
         prefs = this.getSharedPreferences("settings", 0);
+
+        // Setup the View Model so it's ready for the other activities
+        ViewModelProviders.of(this).get(PeerViewModel.class);
     }
 
     @Override
@@ -282,6 +293,18 @@ public class MainActivity extends AppCompatActivity {
     public boolean onCreateOptionsMenu(Menu menu) {
         // Inflate the menu; this adds items to the action bar if it is present.
         getMenuInflater().inflate(R.menu.menu_main, menu);
+        if (dscService != null) {
+            if (dscService.isConnected()) {
+                menu.getItem(5).setVisible(true);
+                menu.getItem(6).setVisible(true);
+            } else {
+                menu.getItem(5).setVisible(true);
+                menu.getItem(6).setVisible(true);
+            }
+        } else {
+            menu.getItem(5).setVisible(true);
+            menu.getItem(6).setVisible(true);
+        }
         return true;
     }
 

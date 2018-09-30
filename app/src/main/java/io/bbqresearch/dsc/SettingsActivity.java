@@ -104,6 +104,7 @@ public class SettingsActivity extends AppCompatPreferenceActivity {
         if (actionBar != null) {
             // Show the Up button in the action bar.
             actionBar.setDisplayHomeAsUpEnabled(true);
+            actionBar.setTitle("Device Settings");
         }
     }
 
@@ -183,7 +184,7 @@ public class SettingsActivity extends AppCompatPreferenceActivity {
             pref.setSummary(shared_val);
             bindPreferenceSummaryToValue(pref);
 
-            shared_val = getPreferenceManager().getSharedPreferences().getString("coding_rate", "0");
+            shared_val = getPreferenceManager().getSharedPreferences().getString("coding_rate", "1");
             pref = findPreference("coding_rate");
             pref.setSummary(shared_val);
             bindPreferenceSummaryToValue(pref);

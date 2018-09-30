@@ -1,4 +1,4 @@
-package io.bbqresearch.dsc;
+package io.bbqresearch.dsc.adapter;
 
 import android.content.Context;
 import android.support.v7.widget.RecyclerView;
@@ -19,7 +19,8 @@ public class MessageListAdapter extends RecyclerView.Adapter<MessageListAdapter.
 
     private int SENT_TYPE = 0;
     private int RECV_TYPE = 1;
-    MessageListAdapter(Context context) {
+
+    public MessageListAdapter(Context context) {
         mInflater = LayoutInflater.from(context);
     }
 
@@ -40,7 +41,7 @@ public class MessageListAdapter extends RecyclerView.Adapter<MessageListAdapter.
         if (viewType == SENT_TYPE) {
             itemView = mInflater.inflate(R.layout.sent_message, parent, false);
         } else {
-            itemView = mInflater.inflate(R.layout.recieved_message, parent, false);
+            itemView = mInflater.inflate(R.layout.received_message, parent, false);
         }
 
         return new MessageViewHolder(itemView);
@@ -59,7 +60,7 @@ public class MessageListAdapter extends RecyclerView.Adapter<MessageListAdapter.
         }
     }
 
-    void setMessages(List<Message> messages) {
+    public void setMessages(List<Message> messages) {
         mMessages = messages;
         notifyDataSetChanged();
     }

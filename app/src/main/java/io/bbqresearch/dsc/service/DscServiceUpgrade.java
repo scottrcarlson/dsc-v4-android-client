@@ -1,19 +1,25 @@
 package io.bbqresearch.dsc.service;
 
 import android.app.Service;
+import android.bluetooth.BluetoothGatt;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Binder;
 import android.os.IBinder;
+import android.support.annotation.NonNull;
 import android.util.Log;
 
 import com.jakewharton.rx.ReplayingShare;
 import com.polidea.rxandroidble2.RxBleClient;
 import com.polidea.rxandroidble2.RxBleConnection;
 import com.polidea.rxandroidble2.RxBleDevice;
+import com.polidea.rxandroidble2.RxBleRadioOperationCustom;
+import com.polidea.rxandroidble2.internal.RxBleLog;
+import com.polidea.rxandroidble2.internal.connection.RxBleGattCallback;
 
 import org.json.JSONObject;
 
+import java.lang.reflect.Method;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.UUID;
@@ -21,6 +27,7 @@ import java.util.concurrent.TimeUnit;
 
 import io.bbqresearch.dsc.entity.Message;
 import io.reactivex.Observable;
+import io.reactivex.Scheduler;
 import io.reactivex.disposables.Disposable;
 import io.reactivex.schedulers.Schedulers;
 import io.reactivex.subjects.PublishSubject;
@@ -28,6 +35,8 @@ import io.reactivex.subjects.PublishSubject;
 public class DscServiceUpgrade extends Service {
     public final static String ACTION_NEW_MESSAGE =
             "io.bbqresearch.android.dirtsimplecomms.NEW_MESSAGE";
+    public final static String ACTION_NEW_BEACON =
+            "io.bbqresearch.android.dirtsimplecomms.ACTION_NEW_BEACON";
     public final static String EXTRA_DATA =
             "io.bbqresearch.android.dirtsimplecomms.EXTRA_DATA";
     public final static String ACTION_NEW_DEVICE_STATUS =
@@ -79,14 +88,7 @@ public class DscServiceUpgrade extends Service {
         rxBleClient = RxBleClient.create(this);
         Log.i(TAG, "rxBleClient State: " + rxBleClient.getState().toString());
         Log.i(TAG, "Instantiated RxBleClient");
-    }
-
-    private Observable<RxBleConnection> prepareConnectionObservable() {
-        return rxBleDevice
-                .establishConnection(false)
-                .takeUntil(disconnectTriggerSubject)
-                //.compose(bindUntilEvent(PAUSE))
-                .compose(ReplayingShare.instance());
+        RxBleLog.setLogLevel(RxBleLog.VERBOSE);
     }
 
     public void dscUpdateSettings() {
@@ -166,24 +168,49 @@ public class DscServiceUpgrade extends Service {
 
     }
 
+    private Observable<RxBleConnection> prepareConnectionObservable() {
+        return rxBleDevice
+                .establishConnection(false)
+                .takeUntil(disconnectTriggerSubject)
+                //.compose(bindUntilEvent(PAUSE))
+                .compose(ReplayingShare.instance());
+    }
+
     public void connect(final String macAddress) {
         rxBleDevice = rxBleClient.getBleDevice(macAddress);
+
         if (!isConnected()) {
+            rxBleDevice.getBluetoothDevice().createBond();
             connectionObservable = prepareConnectionObservable();
-
             connectionObservable
-                    .subscribeOn(Schedulers.newThread())
-                    .flatMap(rxBleConnection -> rxBleConnection.setupNotification(UUID.fromString(DscGattAttributes.DSC_MSG_INBOUND_UUID)))
-                    .doOnNext(notificationObservable -> Log.d(TAG, "Notification Setup"))
-                    .flatMap(notificationObservable -> notificationObservable)
-                    .subscribe(this::onNotificationReceived, this::onNotificationSetupFailure);
+                    .flatMap(rxBleConnection -> rxBleConnection.queue(new CustomGattRefreshOperation()))
+                    .subscribe(result -> {
+                                Log.d(TAG, "done refreshing gatt cache");
+                            },
+                            throwable -> {
+                                Log.d(TAG, "error refreshing gatt cache ");
+                            });
 
-            connectionObservable
+            /*connectionObservable
                     .flatMap(rxBleConnection -> // Set desired interval.
                             Observable.interval(2, TimeUnit.SECONDS).flatMapSingle(sequence -> rxBleConnection.readRssi()))
                     .observeOn(Schedulers.newThread())
-                    .subscribe(this::updateRssi, this::onConnectionFailure);
+                    .subscribe(this::updateRssi, this::onConnectionFailure);*/
+
+            enableNotification(UUID.fromString(DscGattAttributes.DSC_MSG_INBOUND_UUID), 0);
+            enableNotification(UUID.fromString(DscGattAttributes.DSC_SETTINGS_UUID), 500);
         }
+    }
+
+    public void enableNotification(UUID characteristic_uuid, int delay) {
+        connectionObservable
+                .flatMap(rxBleConnection -> rxBleConnection.setupNotification(characteristic_uuid))
+                .subscribeOn(Schedulers.newThread())
+                //.doOnNext(notificationObservable -> Log.d(TAG, "Notification Setup"))
+                .flatMap(notificationObservable -> notificationObservable)
+                .subscribe(this::onNotificationReceived, this::onNotificationSetupFailure);
+
+        //.delay(delay, TimeUnit.MILLISECONDS, Schedulers.computation())
     }
 
     public void updateRssi(int rssi) {
@@ -199,8 +226,36 @@ public class DscServiceUpgrade extends Service {
                     .flatMap(notificationObservable -> notificationObservable)
                     .takeUntil(disableStatusNotification)
                     .subscribe(this::onNotificationReceived, this::onNotificationSetupFailure);
+
+
         } else {
             disableStatusNotification.onNext(true);
+        }
+    }
+
+    private void processInboundFromDsc(String jsonmsg) {
+        //Log.d(TAG, "Got Json String: " + jsonmsg);
+
+        if (getTopic(jsonmsg).contentEquals("getparms")) {
+            //compareSettings(jsonmsg);
+            Log.d(TAG, "device settings received");
+        } else if (getTopic(jsonmsg).contentEquals("newmsg")) {
+            final Intent intent = new Intent(ACTION_NEW_MESSAGE);
+            intent.putExtra(EXTRA_DATA, jsonmsg);
+            sendBroadcast(intent);
+            Log.d(TAG, "newmsg: " + jsonmsg);
+        } else if (getTopic(jsonmsg).contentEquals("newbeacon")) {
+            final Intent intent = new Intent(ACTION_NEW_BEACON);
+            intent.putExtra(EXTRA_DATA, jsonmsg);
+            sendBroadcast(intent);
+            Log.d(TAG, "newbeacon: " + jsonmsg);
+        } else if (getTopic(jsonmsg).contentEquals("status")) {
+            final Intent intent = new Intent(ACTION_NEW_DEVICE_STATUS);
+            intent.putExtra(EXTRA_DATA, jsonmsg);
+            sendBroadcast(intent);
+            Log.d(TAG, "status: " + jsonmsg);
+        } else {
+            Log.d(TAG, "Unknown Incoming: " + jsonmsg.toString());
         }
     }
     public boolean isConnected() {
@@ -237,38 +292,46 @@ public class DscServiceUpgrade extends Service {
     public int readBleRssi() {
         return bleRssi;
     }
-    private void processInboundFromDsc(String jsonmsg) {
-        //Log.d(TAG, "Got Json String: " + jsonmsg);
-
-        if (getTopic(jsonmsg).contentEquals("getparms")) {
-            //compareSettings(jsonmsg);
-            Log.d(TAG, "process inbound msg");
-        } else if (getTopic(jsonmsg).contentEquals("newmsg")) {
-            final Intent intent = new Intent(ACTION_NEW_MESSAGE);
-            intent.putExtra(EXTRA_DATA, jsonmsg);
-            sendBroadcast(intent);
-            Log.d(TAG, "newmsg: " + jsonmsg);
-        } else if (getTopic(jsonmsg).contentEquals("status")) {
-            final Intent intent = new Intent(ACTION_NEW_DEVICE_STATUS);
-            intent.putExtra(EXTRA_DATA, jsonmsg);
-            sendBroadcast(intent);
-            Log.d(TAG, "status: " + jsonmsg);
-        } else {
-            Log.d(TAG, "Unknown Incoming: " + jsonmsg.toString());
-        }
-    }
 
     private void onNotificationSetupFailure(Throwable throwable) {
         //noinspection ConstantConditions
         //Snackbar.make(findViewById(R.id.main), "Notifications error: " + throwable, Snackbar.LENGTH_SHORT).show();
         Log.e(TAG, "Notification Setup Error: " + throwable);
+
+
     }
 
-    private void notificationHasBeenSetUp() {
-        //noinspection ConstantConditions
-        //Snackbar.make(findViewById(R.id.main), "Notifications has been set up", Snackbar.LENGTH_SHORT).show();
-        Log.d(TAG, "Notification Setup.");
+    private static class CustomGattRefreshOperation implements RxBleRadioOperationCustom {
+        CustomGattRefreshOperation() {
+        }
+
+        @Override
+        @NonNull
+        public Observable<Void> asObservable(BluetoothGatt bluetoothGatt,
+                                             RxBleGattCallback rxBleGattCallback,
+                                             Scheduler scheduler) {
+
+            return Observable.fromCallable(() -> refreshDeviceCache(bluetoothGatt))
+                    .delay(500, TimeUnit.MILLISECONDS, Schedulers.computation())
+                    .subscribeOn(scheduler);
+        }
+
+        private Void refreshDeviceCache(BluetoothGatt gatt) {
+            // from http://stackoverflow.com/questions/22596951/how-to-programmatically-force-bluetooth-low-energy-service-discovery-on-android
+            try {
+                BluetoothGatt localBluetoothGatt = gatt;
+                Method localMethod = localBluetoothGatt.getClass().getMethod("refresh");
+                if (localMethod != null) {
+                    boolean bool = ((Boolean) localMethod.invoke(localBluetoothGatt, new Object[0])).booleanValue();
+                    //Timber.i("Gatt cache refresh successful: [%b]", bool);
+                }
+            } catch (Exception localException) {
+                //Timber.e("An exception occured while refreshing device");
+            }
+            return null;
+        }
     }
+
 
     private void onConnectionFailure(Throwable throwable) {
         //noinspection ConstantConditions
@@ -276,9 +339,6 @@ public class DscServiceUpgrade extends Service {
         Log.e(TAG, "Connection Error: " + throwable);
     }
 
-    private void onConnectionFinished() {
-        Log.d(TAG, "Connection Finished.");
-    }
 
     private void onWriteSuccess() {
         //noinspection ConstantConditions
@@ -296,7 +356,6 @@ public class DscServiceUpgrade extends Service {
         disconnectTriggerSubject.onNext(true);
 
     }
-
 
     @Override
     public IBinder onBind(Intent intent) {

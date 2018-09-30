@@ -18,7 +18,7 @@
         android:elevation="2dp"
         android:padding="10dp"
         android:text="Placeholder message"
-        android:textColor="#fff"
+        android:textColor="@android:color/black"
         android:textSize="18dp" />
 
     <TextView
@@ -30,7 +30,7 @@
         android:elevation="2dp"
         android:padding=".2dp"
         android:text="TextView"
-        android:textColor="#000000"
+        android:textColor="@android:color/primary_text_dark"
         android:textSize="12dp" />
 
 </RelativeLayout>

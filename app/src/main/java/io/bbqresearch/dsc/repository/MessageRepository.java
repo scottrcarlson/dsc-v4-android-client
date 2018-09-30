@@ -40,7 +40,7 @@ public class MessageRepository extends BroadcastReceiver {
                 try {
                     JSONObject nodeRoot = new JSONObject(intent.getStringExtra(DscServiceUpgrade.EXTRA_DATA));
                     JSONObject payload = nodeRoot.getJSONObject("payload");
-                    Message message = new Message(payload.getString("msgcypher"),
+                    Message message = new Message(payload.getString("msgcipher"),
                             payload.getString("msg"),
                             payload.getString("author"),
                             payload.getLong("sent_time"),
