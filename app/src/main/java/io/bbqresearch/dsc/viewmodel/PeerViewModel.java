@@ -24,4 +24,7 @@ public class PeerViewModel extends AndroidViewModel {
         return mLastSeenPeers;
     }
 
+    public void deleteAll() {
+        mRepository.deleteAll();
+    }
 }

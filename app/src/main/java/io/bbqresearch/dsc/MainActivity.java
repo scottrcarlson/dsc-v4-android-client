@@ -106,10 +106,10 @@ public class MainActivity extends AppCompatActivity {
 
                 NotificationCompat.Builder mBuilder = new NotificationCompat.Builder(getApplicationContext(), NOTIFY_CHANNEL_DSC)
                         .setSmallIcon(R.drawable.ic_twotone_router_24px)
-                        .setContentTitle("Dirt Simple Comms Connected")
-                        .setContentText("You are currently connected to the DSC network")
-                        .setStyle(new NotificationCompat.BigTextStyle()
-                                .bigText("Put a button here to disconnect from DSC network"))
+                        .setContentTitle("DSC Node Active")
+                        .setContentText("You are currently connected to a DSC network")
+                        //.setStyle(new NotificationCompat.BigTextStyle()
+                        //        .bigText("Put a button here to disconnect from DSC network"))
                         .setPriority(NotificationCompat.PRIORITY_HIGH)
                         .setContentIntent(pendingIntent)
                         .setDefaults(Notification.DEFAULT_SOUND)
@@ -328,6 +328,7 @@ public class MainActivity extends AppCompatActivity {
                 }
             });
             return true;
+
         } else if (id == R.id.action_connect) {
             AsyncTask.execute(new Runnable() {
                 @Override
@@ -358,19 +359,7 @@ public class MainActivity extends AppCompatActivity {
             final Intent intent = new Intent(this, ScanningActivityUpgrade.class);
             startActivityForResult(intent, RESULT_BT_SCAN);
             return true;
-        } else if (id == R.id.action_usb_ble_pair) {
-            /*final Intent intent = new Intent(this, UsbBlePairingActivity.class);
-            startActivity(intent);*/
-            List<Message> msgs = mMessageViewModel.getAllMessages().getValue();
-            for (int i = 0; i < msgs.size(); i++) {
-                Log.d(TAG, msgs.get(i).getMsg());
-                Log.d(TAG, msgs.get(i).getAuthor());
-                Log.d(TAG, "" + msgs.get(i).getOrigTimestamp());
-                Log.d(TAG, "" + msgs.get(i).getRecvTimestamp());
-            }
-            Log.d(TAG, "********** " + mMessageViewModel.getAllMessages().getValue().size());
 
-            return true;
         } else if (id == R.id.action_sync_datetime) {
             dscService.dscSyncTime();
             return true;
